@@ -44,7 +44,26 @@ class Test(unittest.TestCase):
                                                              ('cons', 'a', ('cons', 'b', 'nil'))))
         self.assertEquals(['a', 'b', 'c'], self._term_match(('cons', 'X', ('ctor', 'Y', 'X', ('Z', 'Z'))), 
                                                             ('cons', 'a', ('ctor', 'b', 'a', ('c', 'c')))))
+        #substitute
+        b_xyz = Binding()
+        for (v, t) in [('X', 'a'), ('Y', 'b'), ('Z', ('c', 'c', 'c'))]:
+            b_xyz.bind(v, t)
+        self.assertEquals('a', pyrules.term.substitute('a', b_xyz))
+        self.assertEquals('a', pyrules.term.substitute('X', b_xyz))
+        self.assertEquals('b', pyrules.term.substitute('Y', b_xyz))
+        self.assertEquals(('c', 'c', 'c'), pyrules.term.substitute('Z', b_xyz))
+        self.assertEquals(('cons', ('c', 'c', 'c'), ('c', 'c', 'c')), pyrules.term.substitute(('cons', 'Z', 'Z'), b_xyz))
+        self.assertEquals(('cons', ('cons', 'b', 'W'), ('c', 'c', 'c')), 
+                          pyrules.term.substitute(('cons', ('cons', 'Y', 'W'), 'Z'), b_xyz))
+        self.assertEquals(('cons', ('cons', 'Y', 'W'), 'Z'), pyrules.term.substitute(('cons', ('cons', 'Y', 'W'), 'Z'), Binding()))
+        self.assertIsInstance(self._substitute(None, Binding()), pyrules.term.InvalidTerm)
+        self.assertIsInstance(self._substitute('X', None), Exception)
         
+    def _substitute(self, term, binding):
+        try:
+            return pyrules.term.substitute(term, binding)
+        except Exception as e:
+            return e
     def _term_match(self, pattern_term, closed_term, lookup_variables = ['X', 'Y', 'Z']):
         try:
             binding = pyrules.term.match_and_bind(pattern_term, closed_term)

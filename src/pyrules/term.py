@@ -13,6 +13,17 @@ We allow three kinds of terms:
     The empty iterable is a valid term.
 '''
 
+def substitute(term, binding):
+    '''Example result: b = Binding()
+                       b.bind('X', 'a')
+                       substitute(('cons', X', 'X'), b) == ('cons', 'a', 'a')  
+       @param term: Any valid term. (If not valid, an InvalidTerm will be raised).
+       @param binding: Any pyrules.binding.Binding
+       @return: A copy of term with every occurrence of a variable bound in binding
+                replace by the term it is bound to.
+    '''
+    raise Exception('Not implemented yet')
+
 def match_and_bind(pattern_term, closed_term):
     '''Matches pattern_term to closed_term. If the terms match,
        creates a binding of all variables in pattern_term to the
