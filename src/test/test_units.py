@@ -1,9 +1,11 @@
 import unittest
 from pyrules.binding import Binding
 import pyrules.term 
+from pyrules.rule import Rule
 
 class Test(unittest.TestCase):
     def test_term(self):
+        #is_variable
         self.assertTrue(pyrules.term.is_variable('X'))
         self.assertTrue(pyrules.term.is_variable('Distance'))
         self.assertFalse(pyrules.term.is_variable(' X'))
@@ -12,6 +14,7 @@ class Test(unittest.TestCase):
         self.assertFalse(pyrules.term.is_variable('x'))
         self.assertFalse(pyrules.term.is_variable(42))
         self.assertFalse(pyrules.term.is_variable(('X', 'Y')))
+        #is_valid_and_closed
         self.assertTrue(pyrules.term.is_valid_and_closed('a'))
         self.assertTrue(pyrules.term.is_valid_and_closed('bob'))
         self.assertTrue(pyrules.term.is_valid_and_closed(('parent', 'alice', 'bob')))
@@ -20,6 +23,35 @@ class Test(unittest.TestCase):
         self.assertFalse(pyrules.term.is_valid_and_closed(42))
         self.assertFalse(pyrules.term.is_valid_and_closed('a b'))
         self.assertFalse(pyrules.term.is_valid_and_closed(('parent', 'X', 'bob')))
+        #match
+        self.assertIsInstance(self._term_match(('cons', 'X', 42), 'a'), pyrules.term.InvalidTerm)
+        self.assertIsInstance(self._term_match(('cons', 'X', 'a'), ('cons', 42, 'a')), pyrules.term.InvalidTerm)
+        self.assertIsInstance(self._term_match(('cons', 'X', 'a'), ('cons', 'X', 'a')), pyrules.term.OpenTerm)
+        self.assertIsInstance(self._term_match('a', 'b'), pyrules.term.Mismatch)
+        self.assertIsInstance(self._term_match('a', ('a', 'b')), pyrules.term.Mismatch)
+        self.assertIsInstance(self._term_match(('a', 'X'), ('b', 'c')), pyrules.term.Mismatch)
+        self.assertIsInstance(self._term_match(('a', 'X'), ('a', 'b', 'c')), pyrules.term.Mismatch)
+        self.assertIsInstance(self._term_match(('a', 'X'), (('a', 'b'), 'c')), pyrules.term.Mismatch)
+        self.assertIsInstance(self._term_match(('X', 'X'), ('a', 'b')), pyrules.term.Mismatch)
+        self.assertEquals([None, None, None], self._term_match('a', 'a'))
+        self.assertEquals([None, None, None], self._term_match(('a', 'b'), ('a', 'b')))
+        self.assertEquals([None, None, None], self._term_match((('a', 'b'), 'c'), (('a', 'b'), 'c')))
+        self.assertEquals(['a', None, None], self._term_match('X', 'a'))
+        self.assertEquals(['a', None, None], self._term_match(('a', 'X'), ('a', 'a')))
+        self.assertEquals(['a', None, None], self._term_match(('X', 'X'), ('a', 'a')))
+        self.assertEquals(['a', 'b', None], self._term_match(('X', 'Y'), ('a', 'b')))
+        self.assertEquals(['a', 'a', None], self._term_match(('X', 'Y'), ('a', 'a')))
+        self.assertEquals(['a', 'b', None], self._term_match(('cons', 'X', ('cons', 'Y', 'nil')), 
+                                                             ('cons', 'a', ('cons', 'b', 'nil'))))
+        self.assertEquals(['a', 'b', 'c'], self._term_match(('cons', 'X', ('ctor', 'Y', 'X', ('Z', 'Z'))), 
+                                                            ('cons', 'a', ('ctor', 'b', 'a', ('c', 'c')))))
+        
+    def _term_match(self, pattern_term, closed_term, lookup_variables = ['X', 'Y', 'Z']):
+        try:
+            binding = pyrules.term.match_and_bind(pattern_term, closed_term)
+            return [binding.get(var, None) for var in lookup_variables]
+        except Exception as e:
+            return e
         
     def test_binding(self):
         b = Binding()

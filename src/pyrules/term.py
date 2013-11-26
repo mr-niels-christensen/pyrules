@@ -12,6 +12,19 @@ We allow three kinds of terms:
     The empty iterable is a valid term.
 '''
 
+def match_and_bind(pattern_term, closed_term):
+    '''Matches pattern_term to closed_term. If the terms match,
+       creates a binding of all variables in pattern_term to the
+       corresponding subterms in closed_term.
+       Example: After b = match_and_bind(('X', 'b', 'Z'), ('a', 'b', 'c'))
+                then  b['X'] == 'a' and b['Z'] == 'c'
+       If the two terms did not match, a Mismatch will be raised.
+       @param pattern_term: Any valid pattern
+       @param closed_term: A valid, closed pattern.
+       @return: A binding for the match.
+    '''
+    raise Exception('Not implemented yet')
+
 def is_valid_and_closed(term):
     '''@param term: Any value.
        @return: True, if term is a valid term and does not contain any variable.
@@ -59,4 +72,17 @@ def _atoms_and_variables(term, atoms, variables):
         raise InvalidTerm('Invalid Python type {} of {}'.format(type(term), term))
         
 class InvalidTerm(Exception):
+    '''A given term was not valid, as defined by the criteria at the top of this file.
+    '''
+    pass
+
+class OpenTerm(Exception):
+    '''An open term (one with variables) was given in a context where only
+       a closed term is allowed.
+    '''
+    pass
+
+class Mismatch(Exception):
+    '''Attempted to match two terms that did not match, e.g. ('a', 'X') to ('b', 'c').
+    '''
     pass
