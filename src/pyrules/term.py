@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*- 
 import collections
-import binding
+#from binding import Binding, InvalidBinding
+import pyrules.binding
 
 '''
 Methods for validating and matching terms.
@@ -22,7 +23,15 @@ def substitute(term, binding):
        @return: A copy of term with every occurrence of a variable bound in binding
                 replace by the term it is bound to.
     '''
-    raise Exception('Not implemented yet')
+    if not isinstance(binding, pyrules.binding.Binding):
+        raise Exception('{} is not a Binding'.format(binding))
+    _atoms_and_variables(term, set(), set()) #Raises InvalidTerm if term is not valid
+    if is_variable(term):
+        return binding.get(term, term)
+    if _is_valid_atom_or_variable(term): #i.e. an atom
+        return term
+    #It's an iterable
+    return tuple(substitute(subterm, binding) for subterm in term)
 
 def match_and_bind(pattern_term, closed_term):
     '''Matches pattern_term to closed_term. If the terms match,
@@ -41,10 +50,10 @@ def match_and_bind(pattern_term, closed_term):
     if len(check) > 0:
         raise OpenTerm('Found variables {} in supposedly closed term {}'.format(check, closed_term))
     try:
-        b = binding.Binding()
+        b = pyrules.binding.Binding()
         _match_and_add_bindings(pattern_term, closed_term, b)
         return b
-    except binding.InvalidBinding:
+    except pyrules.binding.InvalidBinding:
         raise Mismatch()
 
 def _match_and_add_bindings(pattern_term, closed_term, binding):
