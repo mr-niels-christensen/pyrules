@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*- 
 import collections
+import binding
 
 '''
 Methods for validating and matching terms.
@@ -23,8 +24,40 @@ def match_and_bind(pattern_term, closed_term):
        @param closed_term: A valid, closed pattern.
        @return: A binding for the match.
     '''
-    raise Exception('Not implemented yet')
+    _atoms_and_variables(pattern_term, set(), set()) #Raises InvalidTerm if pattern_term is not valid
+    check = set()
+    _atoms_and_variables(closed_term, set(), check) #Raises InvalidTerm if closed_term is not valid
+    if len(check) > 0:
+        raise OpenTerm('Found variables {} in supposedly closed term {}'.format(check, closed_term))
+    try:
+        b = binding.Binding()
+        _match_and_add_bindings(pattern_term, closed_term, b)
+        return b
+    except binding.InvalidBinding:
+        raise Mismatch()
 
+def _match_and_add_bindings(pattern_term, closed_term, binding):
+    '''Matches pattern_term to closed_term. If the terms match,
+       adds bindings of all variables in pattern_term to binding.
+       If the two terms did not match, a Mismatch will be raised.
+       In that case, some binding may already have been added to binding
+       @param pattern_term: Any valid pattern. Must be checked before calling.
+       @param closed_term: A valid, closed pattern. Must be checked before calling.
+       @param binding: pyrules.binding.Binding to add relevant bindings to.
+    '''
+    
+    if is_variable(pattern_term):
+        binding.bind(pattern_term, closed_term)
+    elif _is_valid_atom_or_variable(pattern_term): #i.e. an atom
+        if pattern_term != closed_term:
+            raise Mismatch()
+    else: #pattern_term is iterable
+        if isinstance(closed_term, collections.Iterable) and len(closed_term) == len(pattern_term):
+            for (pt, ct) in zip(pattern_term, closed_term):
+                _match_and_add_bindings(pt, ct, binding)
+        else:
+            raise Mismatch()
+        
 def is_valid_and_closed(term):
     '''@param term: Any value.
        @return: True, if term is a valid term and does not contain any variable.

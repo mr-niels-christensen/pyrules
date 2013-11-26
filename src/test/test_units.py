@@ -1,7 +1,6 @@
 import unittest
 from pyrules.binding import Binding
 import pyrules.term 
-from pyrules.rule import Rule
 
 class Test(unittest.TestCase):
     def test_term(self):
