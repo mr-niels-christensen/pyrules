@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*- 
 import collections
-#from binding import Binding, InvalidBinding
 import pyrules.binding
 
 '''
