@@ -1,12 +1,68 @@
 import unittest
 from pyrules.binding import Binding
 import pyrules.term 
+import pyrules.rulebook
 
 class Test(unittest.TestCase):
+    def test_rulebook_invalid_terms(self):
+        r = pyrules.rulebook.Rulebook()
+        #TODO: For simplicity I'm assuming that if one invalid term is rejected, then all invalid terms will be rejected
+        try:
+            r.rule('cons', 42, 'a')
+            self.fail('Should have raised InvalidTerm')
+        except pyrules.term.InvalidTerm:
+            pass
+        try:
+            (
+             r.rule('a')
+             .premise('cons', 42, 'a')
+            )
+            self.fail('Should have raised InvalidTerm')
+        except pyrules.term.InvalidTerm:
+            pass
+
+    #Now for some overall Rulebook testing, but Rulebook will be tested in more depth in separate integration tests.
+    def test_rulebook_empty(self):
+        r = pyrules.rulebook.Rulebook()
+        self.assertListEqual(enumerate([None] * 100), zip(range(100), r.generate_terms()))
+
+    def test_rulebook_a(self):
+        r = pyrules.rulebook.Rulebook()
+        r.rule('a')
+        self.assertSetEqual({'a'}, set(term for (_, term) in zip(range(100), r.generate_terms()) if term is not None))
+
+    def test_rulebook_ab(self):
+        r = pyrules.rulebook.Rulebook()
+        (
+         r.rule('b', 'X')
+         .premise('X')
+        )
+        bs_and_a = set(term for (_, term) in zip(range(100), r.generate_terms()) if term is not None)
+        self.assertIn('a', bs_and_a)
+        self.assertIn(('b', 'a'), bs_and_a)
+        self.assertIn(('b', ('b', 'a')), bs_and_a)
+        for term in bs_and_a:
+            if term != 'a':
+                self.assertEquals('b', term[0])
+                self.assertIn(term[1], bs_and_a)
+        
+    def test_rulebook_no_terms(self):
+        r = pyrules.rulebook.Rulebook()
+        (
+         r.rule('a', 'X')
+         .premise('X')
+        )
+        (
+         r.rule('b', 'X')
+         .premise('X')
+        )
+        self.assertListEqual(enumerate([None] * 100), zip(range(100), r.generate_terms()))
+
     def test_term(self):
         #is_variable
         self.assertTrue(pyrules.term.is_variable('X'))
         self.assertTrue(pyrules.term.is_variable('Distance'))
+        self.assertFalse(pyrules.term.is_variable(''))
         self.assertFalse(pyrules.term.is_variable(' X'))
         self.assertFalse(pyrules.term.is_variable('X '))
         self.assertFalse(pyrules.term.is_variable(None))
@@ -17,6 +73,7 @@ class Test(unittest.TestCase):
         self.assertTrue(pyrules.term.is_valid_and_closed('a'))
         self.assertTrue(pyrules.term.is_valid_and_closed('bob'))
         self.assertTrue(pyrules.term.is_valid_and_closed(('parent', 'alice', 'bob')))
+        self.assertFalse(pyrules.term.is_valid_and_closed(''))
         self.assertFalse(pyrules.term.is_valid_and_closed('X'))
         self.assertFalse(pyrules.term.is_valid_and_closed(None))
         self.assertFalse(pyrules.term.is_valid_and_closed(42))
