@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*- 
-import collections
 import pyrules.binding
 
 '''
@@ -9,8 +8,8 @@ We allow three kinds of terms:
     and beginning with a capital letter. Examples: 'X', 'Distance'
   - An atom, represented as a unicode or a str without whitespaces,
     beginning with anything but a capital letter. Examples: 'bob', '¬'
-  - An iterable of valid terms. Example: ('parent', 'alice', 'bob').
-    The empty iterable is a valid term.
+  - A tuple of valid terms. Example: ('parent', 'alice', 'bob').
+    The empty tuple is a valid term.
 '''
 
 def substitute(term, binding):
@@ -29,7 +28,7 @@ def substitute(term, binding):
         return binding.get(term, term)
     if _is_valid_atom_or_variable(term): #i.e. an atom
         return term
-    #It's an iterable
+    #It's a tuple
     return tuple(substitute(subterm, binding) for subterm in term)
 
 def match_and_bind(pattern_term, closed_term):
@@ -70,8 +69,8 @@ def _match_and_add_bindings(pattern_term, closed_term, binding):
     elif _is_valid_atom_or_variable(pattern_term): #i.e. an atom
         if pattern_term != closed_term:
             raise Mismatch()
-    else: #pattern_term is iterable
-        if isinstance(closed_term, collections.Iterable) and len(closed_term) == len(pattern_term):
+    else: #pattern_term is tuple
+        if isinstance(closed_term, tuple) and len(closed_term) == len(pattern_term):
             for (pt, ct) in zip(pattern_term, closed_term):
                 _match_and_add_bindings(pt, ct, binding)
         else:
@@ -123,7 +122,7 @@ def _atoms_and_variables(term, atoms, variables):
         atoms.add(term)
     elif isinstance(term, basestring):
         raise InvalidTerm('Invalid string term "{}"'.format(term))
-    elif isinstance(term, collections.Iterable):
+    elif isinstance(term, tuple):
         for subterm in term:
             _atoms_and_variables(subterm, atoms, variables)
     else:
