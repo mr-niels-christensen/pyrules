@@ -90,26 +90,26 @@ class Test(unittest.TestCase):
         self.assertFalse(Test._is_valid('a b'))
         self.assertTrue(Test._is_valid(('parent', 'X', 'bob')))
         #match
-        self.assertIsInstance(self._term_match(('cons', 'X', 42), 'a'), pyrules.term.InvalidTerm)
-        self.assertIsInstance(self._term_match(('cons', 'X', 'a'), ('cons', 42, 'a')), pyrules.term.InvalidTerm)
-        self.assertIsInstance(self._term_match(('cons', 'X', 'a'), ('cons', 'X', 'a')), pyrules.term.OpenTerm)
-        self.assertIsInstance(self._term_match('a', 'b'), pyrules.term.Mismatch)
-        self.assertIsInstance(self._term_match('a', ('a', 'b')), pyrules.term.Mismatch)
-        self.assertIsInstance(self._term_match(('a', 'X'), ('b', 'c')), pyrules.term.Mismatch)
-        self.assertIsInstance(self._term_match(('a', 'X'), ('a', 'b', 'c')), pyrules.term.Mismatch)
-        self.assertIsInstance(self._term_match(('a', 'X'), (('a', 'b'), 'c')), pyrules.term.Mismatch)
-        self.assertIsInstance(self._term_match(('X', 'X'), ('a', 'b')), pyrules.term.Mismatch)
-        self.assertEquals([None, None, None], self._term_match('a', 'a'))
-        self.assertEquals([None, None, None], self._term_match(('a', 'b'), ('a', 'b')))
-        self.assertEquals([None, None, None], self._term_match((('a', 'b'), 'c'), (('a', 'b'), 'c')))
-        self.assertEquals(['a', None, None], self._term_match('X', 'a'))
-        self.assertEquals(['a', None, None], self._term_match(('a', 'X'), ('a', 'a')))
-        self.assertEquals(['a', None, None], self._term_match(('X', 'X'), ('a', 'a')))
-        self.assertEquals(['a', 'b', None], self._term_match(('X', 'Y'), ('a', 'b')))
-        self.assertEquals(['a', 'a', None], self._term_match(('X', 'Y'), ('a', 'a')))
-        self.assertEquals(['a', 'b', None], self._term_match(('cons', 'X', ('cons', 'Y', 'nil')), 
+        self.assertIsInstance(Test._term_match(('cons', 'X', 42), 'a'), pyrules.term.InvalidTerm)
+        self.assertIsInstance(Test._term_match(('cons', 'X', 'a'), ('cons', 42, 'a')), pyrules.term.InvalidTerm)
+        self.assertIsInstance(Test._term_match(('cons', 'X', 'a'), ('cons', 'X', 'a')), pyrules.term.OpenTerm)
+        self.assertIsInstance(Test._term_match('a', 'b'), pyrules.term.Mismatch)
+        self.assertIsInstance(Test._term_match('a', ('a', 'b')), pyrules.term.Mismatch)
+        self.assertIsInstance(Test._term_match(('a', 'X'), ('b', 'c')), pyrules.term.Mismatch)
+        self.assertIsInstance(Test._term_match(('a', 'X'), ('a', 'b', 'c')), pyrules.term.Mismatch)
+        self.assertIsInstance(Test._term_match(('a', 'X'), (('a', 'b'), 'c')), pyrules.term.Mismatch)
+        self.assertIsInstance(Test._term_match(('X', 'X'), ('a', 'b')), pyrules.term.Mismatch)
+        self.assertEquals([None, None, None], Test._term_match('a', 'a'))
+        self.assertEquals([None, None, None], Test._term_match(('a', 'b'), ('a', 'b')))
+        self.assertEquals([None, None, None], Test._term_match((('a', 'b'), 'c'), (('a', 'b'), 'c')))
+        self.assertEquals(['a', None, None], Test._term_match('X', 'a'))
+        self.assertEquals(['a', None, None], Test._term_match(('a', 'X'), ('a', 'a')))
+        self.assertEquals(['a', None, None], Test._term_match(('X', 'X'), ('a', 'a')))
+        self.assertEquals(['a', 'b', None], Test._term_match(('X', 'Y'), ('a', 'b')))
+        self.assertEquals(['a', 'a', None], Test._term_match(('X', 'Y'), ('a', 'a')))
+        self.assertEquals(['a', 'b', None], Test._term_match(('cons', 'X', ('cons', 'Y', 'nil')), 
                                                              ('cons', 'a', ('cons', 'b', 'nil'))))
-        self.assertEquals(['a', 'b', 'c'], self._term_match(('cons', 'X', ('ctor', 'Y', 'X', ('Z', 'Z'))), 
+        self.assertEquals(['a', 'b', 'c'], Test._term_match(('cons', 'X', ('ctor', 'Y', 'X', ('Z', 'Z'))), 
                                                             ('cons', 'a', ('ctor', 'b', 'a', ('c', 'c')))))
         #substitute
         b_xyz = Binding()
@@ -123,8 +123,8 @@ class Test(unittest.TestCase):
         self.assertEquals(('cons', ('cons', 'b', 'W'), ('c', 'c', 'c')), 
                           pyrules.term.substitute(('cons', ('cons', 'Y', 'W'), 'Z'), b_xyz))
         self.assertEquals(('cons', ('cons', 'Y', 'W'), 'Z'), pyrules.term.substitute(('cons', ('cons', 'Y', 'W'), 'Z'), Binding()))
-        self.assertIsInstance(self._substitute(None, Binding()), pyrules.term.InvalidTerm)
-        self.assertIsInstance(self._substitute('X', None), Exception)
+        self.assertIsInstance(Test._substitute(None, Binding()), pyrules.term.InvalidTerm)
+        self.assertIsInstance(Test._substitute('X', None), Exception)
 
     @staticmethod
     def _is_valid(term):
@@ -133,14 +133,16 @@ class Test(unittest.TestCase):
             return True
         except pyrules.term.InvalidTerm:
             return False
-        
-    def _substitute(self, term, binding):
+    
+    @staticmethod
+    def _substitute(term, binding):
         try:
             return pyrules.term.substitute(term, binding)
         except Exception as e:
             return e
 
-    def _term_match(self, pattern_term, closed_term, lookup_variables = ['X', 'Y', 'Z']):
+    @staticmethod
+    def _term_match(pattern_term, closed_term, lookup_variables = ['X', 'Y', 'Z']):
         try:
             binding = pyrules.term.match_and_bind(pattern_term, closed_term)
             return [binding.get(var, None) for var in lookup_variables]
