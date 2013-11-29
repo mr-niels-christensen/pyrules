@@ -79,6 +79,16 @@ class Test(unittest.TestCase):
         self.assertFalse(pyrules.term.is_valid_and_closed(42))
         self.assertFalse(pyrules.term.is_valid_and_closed('a b'))
         self.assertFalse(pyrules.term.is_valid_and_closed(('parent', 'X', 'bob')))
+        #check_valid
+        self.assertTrue(Test._is_valid('a'))
+        self.assertTrue(Test._is_valid('bob'))
+        self.assertTrue(Test._is_valid(('parent', 'alice', 'bob')))
+        self.assertFalse(Test._is_valid(''))
+        self.assertTrue(Test._is_valid('X'))
+        self.assertFalse(Test._is_valid(None))
+        self.assertFalse(Test._is_valid(42))
+        self.assertFalse(Test._is_valid('a b'))
+        self.assertTrue(Test._is_valid(('parent', 'X', 'bob')))
         #match
         self.assertIsInstance(self._term_match(('cons', 'X', 42), 'a'), pyrules.term.InvalidTerm)
         self.assertIsInstance(self._term_match(('cons', 'X', 'a'), ('cons', 42, 'a')), pyrules.term.InvalidTerm)
@@ -115,12 +125,21 @@ class Test(unittest.TestCase):
         self.assertEquals(('cons', ('cons', 'Y', 'W'), 'Z'), pyrules.term.substitute(('cons', ('cons', 'Y', 'W'), 'Z'), Binding()))
         self.assertIsInstance(self._substitute(None, Binding()), pyrules.term.InvalidTerm)
         self.assertIsInstance(self._substitute('X', None), Exception)
+
+    @staticmethod
+    def _is_valid(term):
+        try:
+            pyrules.term.check_valid(term)
+            return True
+        except pyrules.term.InvalidTerm:
+            return False
         
     def _substitute(self, term, binding):
         try:
             return pyrules.term.substitute(term, binding)
         except Exception as e:
             return e
+
     def _term_match(self, pattern_term, closed_term, lookup_variables = ['X', 'Y', 'Z']):
         try:
             binding = pyrules.term.match_and_bind(pattern_term, closed_term)

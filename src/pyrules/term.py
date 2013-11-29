@@ -24,7 +24,7 @@ def substitute(term, binding):
     '''
     if not isinstance(binding, pyrules.binding.Binding):
         raise Exception('{} is not a Binding'.format(binding))
-    _atoms_and_variables(term, set(), set()) #Raises InvalidTerm if term is not valid
+    check_valid(term)
     if is_variable(term):
         return binding.get(term, term)
     if _is_valid_atom_or_variable(term): #i.e. an atom
@@ -43,7 +43,7 @@ def match_and_bind(pattern_term, closed_term):
        @param closed_term: A valid, closed pattern.
        @return: A binding for the match.
     '''
-    _atoms_and_variables(pattern_term, set(), set()) #Raises InvalidTerm if pattern_term is not valid
+    check_valid(pattern_term)
     check = set()
     _atoms_and_variables(closed_term, set(), check) #Raises InvalidTerm if closed_term is not valid
     if len(check) > 0:
@@ -103,6 +103,12 @@ def _is_valid_atom_or_variable(term):
     '''
     return isinstance(term, basestring) and len(term) > 0 and len(term.split(None, 1)) == 1 and term.strip() == term
 
+def check_valid(term):
+    '''Raises InvalidTerm if term is not a valid term.
+       @param term: Any value
+    '''
+    _atoms_and_variables(term, set(), set())
+    
 def _atoms_and_variables(term, atoms, variables):
     '''Raises InvalidTerm if term is not a valid term.
        Otherwise, adds all atoms in term to atoms and all variables in

@@ -1,3 +1,5 @@
+import pyrules.term
+
 class Rulebook(object):
     '''A Rulebook defines a recursive scheme for generating terms.
        The Rulebook contains a number of rules.
@@ -36,6 +38,7 @@ class Rulebook(object):
            The notation for premise terms is the same as for the conclusion term. 
         '''
         conclusion_term = conclusion if len(conclusion) != 1 else conclusion[0]
+        pyrules.term.check_valid(conclusion_term)
         index = len(self._rules)
         self._rules.append((conclusion_term, []))
         return _Rule(self, index)
@@ -48,6 +51,7 @@ class Rulebook(object):
            will be that term, otherwise the new premise will be the tuple itself.
         '''
         premise_term = premise if len(premise) != 1 else premise[0]
+        pyrules.term.check_valid(premise_term)
         self._rules[index][1].append(premise_term)
         
     def generate_terms(self):
