@@ -14,12 +14,10 @@ class Rulebook(object):
        obtained from the matches.
        
        A number of concrete examples will appear in the test package.
-       
-         
     '''
     
     def __init__(self):
-        raise Exception('Not implemented yet')
+        self._rules = []
         
     def rule(self, *conclusion):
         '''Adds one rule to this Rulebook. To add premises to the rule,
@@ -37,8 +35,21 @@ class Rulebook(object):
            This method will also return an object that implements premise() so calls can be chained.
            The notation for premise terms is the same as for the conclusion term. 
         '''
-        raise Exception('Not implemented yet')
+        conclusion_term = conclusion if len(conclusion) != 1 else conclusion[0]
+        index = len(self._rules)
+        self._rules.append((conclusion_term, []))
+        return _Rule(self, index)
     
+    def _add_premise(self, index, premise):
+        '''Adds one premise to the rule with the given index.
+           @param index: Index into the internal list of rules.
+           @param premise: The added premise of the rule. Must be a tuple.
+           If the tuple contains exactly one term, the new premise
+           will be that term, otherwise the new premise will be the tuple itself.
+        '''
+        premise_term = premise if len(premise) != 1 else premise[0]
+        self._rules[index][1].append(premise_term)
+        
     def generate_terms(self):
         '''Generator for all terms that can be concluded from the rules in this Rulebook.
            The generator operates as if the Rulebook is "copied", i.e. future updates of the Rulebook
@@ -49,3 +60,14 @@ class Rulebook(object):
            The generated sequence is guaranteed to be infinite.
         '''
         raise Exception('Not implemented yet')
+    
+class _Rule(object):
+    '''Helper object for implementing chaining of .premise() method.
+    '''
+    def __init__(self, rulebook, index):
+        self.index = index
+        self.rulebook = rulebook
+    
+    def premise(self, *premise):
+        self.rulebook._add_premise(self.index, premise)
+        return self
