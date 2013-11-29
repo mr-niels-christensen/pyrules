@@ -40,7 +40,7 @@ class Rulebook(object):
         conclusion_term = conclusion if len(conclusion) != 1 else conclusion[0]
         pyrules.term.check_valid(conclusion_term)
         index = len(self._rules)
-        self._rules.append((conclusion_term, []))
+        self._rules.append((conclusion_term, set()))
         return _Rule(self, index)
     
     def _add_premise(self, index, premise):
@@ -52,7 +52,7 @@ class Rulebook(object):
         '''
         premise_term = premise if len(premise) != 1 else premise[0]
         pyrules.term.check_valid(premise_term)
-        self._rules[index][1].append(premise_term)
+        self._rules[index][1].add(premise_term)
         
     def generate_terms(self):
         '''Generator for all terms that can be concluded from the rules in this Rulebook.
