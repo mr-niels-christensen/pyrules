@@ -2,42 +2,48 @@ import unittest
 from pyrules.binding import Binding
 import pyrules.term 
 import pyrules.rulebook
+import itertools
 
 class Test(unittest.TestCase):
     def test_rulebook_invalid_terms(self):
-        r = pyrules.rulebook.Rulebook()
-        #TODO: For simplicity I'm assuming that if one invalid term is rejected, then all invalid terms will be rejected
+        self._assert_invalid_as_premise_or_conclusion('cons', 42, 'a')
+        self._assert_invalid_as_premise_or_conclusion(None)
+        self._assert_invalid_as_premise_or_conclusion('cons', (42, 'a'), 'a')
+        self._assert_invalid_as_premise_or_conclusion('X', ['X'])
+        
+    def _assert_invalid_as_premise_or_conclusion(self, *invalid_term):    
         try:
-            r.rule('cons', 42, 'a')
+            pyrules.rulebook.Rulebook().rule(*invalid_term)
             self.fail('Should have raised InvalidTerm')
         except pyrules.term.InvalidTerm:
             pass
         try:
             (
-             r.rule('a')
-             .premise('cons', 42, 'a')
+             pyrules.rulebook.Rulebook().rule('a')
+             .premise(*invalid_term)
             )
             self.fail('Should have raised InvalidTerm')
         except pyrules.term.InvalidTerm:
             pass
 
-    #Now for some overall Rulebook testing, but Rulebook will be tested in more depth in separate integration tests.
+    #Now for some overall Rulebook testing. Rulebook will be tested in more depth in separate integration tests.
     def test_rulebook_empty(self):
         r = pyrules.rulebook.Rulebook()
-        self.assertListEqual(enumerate([None] * 100), zip(range(100), r.generate_terms()))
+        self.assertEquals(0, len(list(r.generate_terms())))
 
     def test_rulebook_a(self):
         r = pyrules.rulebook.Rulebook()
         r.rule('a')
-        self.assertSetEqual({'a'}, set(term for (_, term) in zip(range(100), r.generate_terms()) if term is not None))
+        self.assertSetEqual({'a'}, set(term for term in itertools.islice(r.generate_terms(), 100) if term is not None))
 
     def test_rulebook_ab(self):
         r = pyrules.rulebook.Rulebook()
+        r.rule('a')
         (
          r.rule('b', 'X')
          .premise('X')
         )
-        bs_and_a = set(term for (_, term) in zip(range(100), r.generate_terms()) if term is not None)
+        bs_and_a = set(term for term in itertools.islice(r.generate_terms(), 100) if term is not None)
         self.assertIn('a', bs_and_a)
         self.assertIn(('b', 'a'), bs_and_a)
         self.assertIn(('b', ('b', 'a')), bs_and_a)
@@ -56,7 +62,7 @@ class Test(unittest.TestCase):
          r.rule('b', 'X')
          .premise('X')
         )
-        self.assertListEqual(enumerate([None] * 100), zip(range(100), r.generate_terms()))
+        self.assertEquals(0, len(list(r.generate_terms())))
 
     def test_term(self):
         #is_variable
