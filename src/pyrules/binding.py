@@ -22,5 +22,12 @@ class Binding(dict):
             raise InvalidBinding('Cannot bind {} to {}; already bound to {}'.format(variable, closed_term, self[variable]))
         self[variable] = closed_term
     
+    def add_all(self, other_binding):
+        if not isinstance(other_binding, Binding):
+            print '{} has class {}'.format(other_binding, type(other_binding))
+            raise InvalidBinding()
+        for (variable, closed_term) in other_binding.iteritems():
+            self.bind(variable, closed_term)
+
 class InvalidBinding(Exception):
     pass
