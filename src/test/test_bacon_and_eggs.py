@@ -22,8 +22,8 @@ class Test(unittest.TestCase):
          r.rule('nice', ('eggs', 'X'))
          .premise('good', 'X')
         )
-        r.rule('nice', 'beans') #Rule 3: 'beans' are nice.
-        r.rule('good', 'toast') #Rule 4: 'toast' is good.
+        r.rule('nice', 'beans') #Rule 2: 'beans' are nice.
+        r.rule('good', 'toast') #Rule 3: 'toast' is good.
         self.rulebook = r
     
     def test_first_100(self):
