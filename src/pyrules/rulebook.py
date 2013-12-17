@@ -198,7 +198,7 @@ class _MatchQueue(Queue.Queue):
            will be enqueued along with rule_index and premise_index.
         '''
         if not pyrules.term.is_valid_and_closed(closed_term):
-            raise pyrules.term.OpenTerm
+            raise pyrules.term.OpenTerm()
         if closed_term in self._seen_terms:
             return
         for (premise_term, rule_index, premise_index) in self._premises:
