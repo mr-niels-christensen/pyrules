@@ -2,15 +2,23 @@
 import unittest
 import pyrules.rulebook
 import itertools
-import pyrules.term
+'''This examples show how pyrules can be used to work with mathematical logic in Python.
 
+   The setUp() method creates a RuleBook for propositional logic,
+   based on the Russell-Bernays axiom system (which happens to be reasonably
+   small and only uses the connectives for OR and NOT).
+   
+   The RuleBook will generated all theorems of that axiom system using the atomic propositions
+   'p' and 'q'. 
+'''
 ATOMIC_PROPOSITIONS = ['p', 'q']
 
 def _implies(lhs, rhs):
+    '''All 5 axioms are implications, so they're easier to read with this abbreviation. 
+    '''
     return ('∨', ('¬', lhs), rhs)
     
 class Test(unittest.TestCase):
-
     def _add_binop(self, op):
         (
          self.r.rule('expr', (op, 'X', 'Y'))
@@ -31,12 +39,12 @@ class Test(unittest.TestCase):
         self._add_binop('∨')
         self._add_unop('¬')
         #Russell-Bernays axiom system:
-        (
+        (#When A and A=>B are true, so is B
          self.r.rule('true', 'B')
          .premise('true', 'A')
          .premise('true', _implies('A', 'B'))
         )
-        (
+        (#(B=>C) => ((A∨B) => (A∨C)) is true when A,B,C are expressions
          self.r.rule('true', 
                      _implies(_implies('B', 'C'),
                               _implies(('∨', 'A', 'B'),
@@ -45,21 +53,21 @@ class Test(unittest.TestCase):
          .premise('expr', 'B')
          .premise('expr', 'C')
         )
-        (
+        (#(A=>B) => (B∨A) is true when A,B are expressions
          self.r.rule('true', 
                      _implies(('∨', 'A', 'B'),
                               ('∨', 'B', 'A')))
          .premise('expr', 'A')
          .premise('expr', 'B')
         )
-        (
+        (#A => (B∨A) is true when A,B are expressions
          self.r.rule('true', 
                      _implies('A',
                               ('∨', 'B', 'A')))
          .premise('expr', 'A')
          .premise('expr', 'B')
         )
-        (
+        (#(A∨A) => A is true when A is an expression
          self.r.rule('true', 
                      _implies(('∨', 'A', 'A'),
                               'A'))
