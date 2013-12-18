@@ -67,12 +67,42 @@ class Test(unittest.TestCase):
         )
         
     def test_fact_found(self):
+        '''Verify that one particular truth is generated
+        '''
         terms_1000 = [term for term in itertools.islice(self.r.generate_terms(), 1000) if term is not None]
         true_facts_1000 = [term for (tag, term) in terms_1000 if tag == 'true']
         self.assertIn(('∨', ('¬', ('¬', 'p')), 
                             ('∨', ('¬', 'q'), ('¬', 'p'))), 
                       true_facts_1000)
 
+    def test_always_true(self):
+        '''Verify that all (initial) generated 'true' terms
+           evaluate to true no matter the values of the ATOMIC_PROPOSITIONS
+        '''
+        for term in itertools.islice(self.r.generate_terms(), 1000):
+            if term is not None and term[0] == 'true':
+                self._assert_true(term[1], p = True, q = True)
+                self._assert_true(term[1], p = True, q = False)
+                self._assert_true(term[1], p = False, q = True)
+                self._assert_true(term[1], p = False, q = False)
+
+    def _assert_true(self, expr, p, q):
+        true_atomic_propositions = set()
+        if p:
+            true_atomic_propositions.add('p')
+        if q:
+            true_atomic_propositions.add('q')
+        self.assertTrue(Test._evaluate(expr, true_atomic_propositions),
+                        '{} is not true when p={} and q={}'.format(Test.pp(expr), p, q))
+
+    @staticmethod
+    def _evaluate(expr, true_atomic_propositions):
+        if expr[0] == '¬':
+            return not Test._evaluate(expr[1], true_atomic_propositions)
+        if expr[0] == '∨':
+            return Test._evaluate(expr[1], true_atomic_propositions) or Test._evaluate(expr[2], true_atomic_propositions)
+        return expr in true_atomic_propositions
+        
     @staticmethod
     def pp(fact):
         if fact is None:
