@@ -119,7 +119,7 @@ class Test(unittest.TestCase):
             return '({} {} {})'.format(Test.pp(fact[1]), Test.pp(fact[0]), Test.pp(fact[2]))
         if isinstance(fact, tuple) and len(fact) == 2:
             return '{}{}'.format(Test.pp(fact[0]), Test.pp(fact[1]))
-        return fact.encode('utf-8')
+        return fact
 
 
 if __name__ == "__main__":
