@@ -56,14 +56,16 @@ class Rulebook(object):
         pyrules.term.check_valid(premise_term)
         self._rules[index][1].add(premise_term)
         
-    def generate_terms(self):
+    def generate_terms(self, trace = None):
         '''Generator for all terms that can be concluded from the rules in this Rulebook.
            The generator operates as if the Rulebook is "copied", i.e. future updates of the Rulebook
            will not affect the generator's returned result.
            Note: The generated sequence may contain (many) occurrences of None.
            The generated sequence is will be infinite if and only if the rules generate infinitely many terms.
+           @param trace: a dict. If this is given, each generated term will be added
+           as a key, mapping to the terms that it was generated from. 
         '''
-        session = _Session()
+        session = _Session(trace)
         for (conclusion_term, premise_term_set) in self._rules:
             session.add_rule(conclusion_term, premise_term_set)
         return session.stream()
@@ -98,20 +100,22 @@ class _Session(object):
        and the other premises of r_i are bound by bindings previously taken off the queue.
        (Early in the process some premises may have no bindings so that no conclusions can be generated).
        
-       The process is boostrapped using the facts (0-premise rules) from the Rulebook.
+       The process is bootstrapped using the facts (0-premise rules) from the Rulebook.
        
        To avoid unbounded waiting, None is generated when bound premises are incompatible,
        e.g. for the rule X :- ('a', 'X'), ('b', 'X') when the first premise is bound by
        {'X' : 'c'} and the second premise is bound to {'X' : 'd'}. 
     '''
-    def __init__(self):
+    def __init__(self, trace = None):
         '''Initiates a _Session with no rules.
            Call add_rule() to add the rules, then call stream() to generate terms.
         '''
         self._conclusions = [] #Conclusions of the non-fact rules given to add_rule()
+        self._premises = [] #Premises of the non-fact rules given to add_rule()
         self._active_bindings = [] #A list of lists of bindings taken off the queue, organized as _active_bindings[rule_index][premise_index] 
         self._binding_q = _MatchQueue() #The queue of matches. This will perform the matching and remove terms already seen.
         self._facts = [] #Facts given to add_rule()
+        self.trace = trace
         
     def add_rule(self, conclusion_term, premise_terms):
         '''Adds the given rule to internal data structures.
@@ -121,6 +125,7 @@ class _Session(object):
         else:
             rule_index = len(self._conclusions)
             self._conclusions.append(conclusion_term)
+            self._premises.append(premise_terms)
             self._active_bindings.append([[] for _ in premise_terms])
             for (premise_index, premise_term) in enumerate(premise_terms):
                 self._binding_q.add_premise(premise_term, rule_index, premise_index)
@@ -134,6 +139,8 @@ class _Session(object):
         #First generate all facts and add them to the queue.
         for fact in self._facts:
             self._binding_q.add_term(fact)
+            if self.trace is not None:
+                self.trace[fact] = []
             yield fact
         while True:#Loop until the queue is empty
             try:
@@ -147,6 +154,8 @@ class _Session(object):
                     substituted_conclusion = term_or_None(self._conclusions[rule_index], binding_per_premise)
                     if substituted_conclusion is not None:
                         self._binding_q.add_term(substituted_conclusion)
+                        if self.trace is not None:
+                            self.trace[substituted_conclusion] = [pyrules.term.substitute(premise_term, b) for (premise_term, b) in zip(self._premises[rule_index], binding_per_premise)]
                     yield substituted_conclusion
                 #Add the most recently gotten match to the active bindings
                 self._active_bindings[rule_index][premise_index].append(b)
