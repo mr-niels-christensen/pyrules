@@ -1,4 +1,5 @@
-from itertools import chain, imap, ifilter, product
+from itertools import imap, ifilter, product
+from collections import deque
 
 class RuleBook(object):
     pass
@@ -113,7 +114,7 @@ class _Wrap(object):
 
     def __or__(self, other):
         assert isinstance(other, _Wrap)
-        return _Wrap(chain(self._wrapped, other._wrapped))#roundrobin(self, other)
+        return _Wrap(roundrobin(self._wrapped, other._wrapped))
 
 def _union(ds):
     d0, d1 = ds
