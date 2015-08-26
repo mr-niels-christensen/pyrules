@@ -31,9 +31,8 @@ class Family(RuleBook):
 
 class Test(unittest.TestCase):
     def test_foo(self):
-        #TODO for (aunt, niece) in Family().aunt(var.x, var.y):
-        for d in Family().aunt(var.A, var.B):
-            print d#'{} is aunt/uncle to {}'.format(aunt, niece)
+        for (aunt, niece) in Family().aunt(var.A, var.B):
+            print '{} is aunt/uncle to {}'.format(aunt, niece)
             
 if __name__ == "__main__":
     unittest.main()

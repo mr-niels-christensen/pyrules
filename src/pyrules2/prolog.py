@@ -53,7 +53,6 @@ class _Atom(object):
     def __repr__(self):
         return '<atom.{}>'.format(self._name)
 
-
 var = _Namespace(_Var)
 atom = _Namespace(_Atom)
 
@@ -74,28 +73,37 @@ def pairs(pairs_iterator):
     return actual_decorator
 
 def rule(func):
-    return func
+    def resulting_method(self, *args):
+        assert all(isinstance(arg, _Var) or isinstance(arg, _Atom) for arg in args)
+        return func(self, *args).set_args(*args)
+    return resulting_method
 
 def _wrap_pairs_iterator(pairs_iterator, arg0, arg1):
         if arg0.is_var() and arg1.is_var():
             wrapped = ({arg0:x, arg1:y} for (x, y) in pairs_iterator)
-            return _Wrap(wrapped)
+            return _Wrap(wrapped).set_args(arg0, arg1)
         if arg0.is_var():
             wrapped = ({arg0:x} for (x, y) in pairs_iterator if y == arg1)
-            return _Wrap(wrapped)
+            return _Wrap(wrapped).set_args(arg0, arg1)
         if arg1.is_var():
             wrapped = ({arg1:y} for (x, y) in pairs_iterator if x == arg0)
-            return _Wrap(wrapped)
+            return _Wrap(wrapped).set_args(arg0, arg1)
 
 class _Wrap(object):
     def __init__(self, wrapped):
         self._wrapped = wrapped
+        self._projection = lambda d : d
+
+    def set_args(self, *args):
+        self._projection = lambda d : tuple(d[arg] for arg in args if arg.is_var())
+        return self
 
     def __iter__(self):
         return self
 
     def next(self):
-        return self._wrapped.next()
+        n = self._wrapped.next()
+        return self._projection(n)
 
     def __and__(self, other):
         #TODO: propagate bindings!
