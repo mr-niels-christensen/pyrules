@@ -7,7 +7,17 @@ class _Namespace(object):
         if name.startswith("__"):  # ignore any special Python names!
             raise AttributeError
         else:
-            return None
+            return 'atom.{}'.format(name)
 
-var = _Namespace
+var = _Namespace()
+atom = _Namespace()
+
+def pairs(pairs_iterator):
+    def dummy_decorator(func):
+        return func
+    return dummy_decorator
+
+def rule(func):
+    return func
+
 

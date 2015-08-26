@@ -1,6 +1,6 @@
 import unittest
-from pyrules2.prolog import var, RuleBook
-
+from pyrules2.prolog import var, atom, pairs, rule, RuleBook
+from itertools import combinations, product, chain
 '''Example: Family relations
 
    In this example, we're deducing family relations from a 
@@ -8,15 +8,22 @@ from pyrules2.prolog import var, RuleBook
 '''
 
 class Family(RuleBook):
+    @pairs(product([atom.frederik, atom.mary], 
+                   [atom.christian, atom.isabella, 
+                    atom.vincent, atom.josephine]))
     def children(self, parent, child):
         pass
 
+    @pairs(chain(combinations([atom.frederik, atom.mary], 2),
+                 combinations([atom.joachim, atom.marie], 2)))
     def spouse(self, x, y):
         pass
 
+    @pairs(combinations([atom.frederik, atom.joachim], 2))
     def sibling(self, x, y):
         pass
 
+    @rule
     def aunt(self, aunt, niece):
         return (self.children(var.x, niece) & 
                (self.sibling(aunt, var.x) |
