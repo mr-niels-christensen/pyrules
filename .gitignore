@@ -1,3 +1,6 @@
+venv
+.*.made
+
 *.py[cod]
 
 # C extensions
