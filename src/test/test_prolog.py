@@ -25,13 +25,15 @@ class Family(RuleBook):
 
     @rule
     def aunt(self, aunt, niece):
-        return (self.children(var.x, niece) & 
-               (self.sibling(aunt, var.x) |
-                (self.spouse(aunt, var.y) & self.sibling(var.y, var.x))))
+        x = var.x
+        y = var.y
+        return (self.children(x, niece) & 
+               (self.sibling(aunt, x) |
+                (self.spouse(aunt, y) & self.sibling(y, x))))
 
 class Test(unittest.TestCase):
     def test_foo(self):
-        for (aunt, niece) in Family().aunt(var.A, var.B):
+        for (aunt, niece) in Family().aunt(var.x, var.y):
             print '{} is aunt/uncle to {}'.format(aunt, niece)
             
 if __name__ == "__main__":

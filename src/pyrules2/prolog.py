@@ -1,5 +1,6 @@
 from itertools import imap, ifilter, product
 from collections import deque
+from uuid import uuid4
 
 class RuleBook(object):
     pass
@@ -12,11 +13,9 @@ class _Namespace(object):
         return self._ctor(name)
 
 class _Var(object):
-    #TODO var.x in different methods of a RuleBook should not match
     def __init__(self, name):
-        #TODO Associate with Rulebook?
-        self._name = name
-
+        self._name = '{}_{}'.format(name, str(uuid4()).replace('-','_'))
+                
     def is_var(self):
         return True
 
