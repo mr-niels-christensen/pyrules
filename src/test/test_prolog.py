@@ -30,11 +30,9 @@ class Family(RuleBook):
                 (self.spouse(aunt, var.y) & self.sibling(var.y, var.x))))
 
 class Test(unittest.TestCase):
-    def setUp(self):
-        pass
-
     def test_foo(self):
-        pass
+        for (aunt, niece) in Family().aunt(var.x, var.y):
+            print '{} is aunt/uncle to {}'.format(aunt, niece)
             
 if __name__ == "__main__":
     unittest.main()
