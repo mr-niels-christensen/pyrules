@@ -67,10 +67,19 @@ def pairs(pairs_iterator):
             assert isinstance(args[1], _Var) or isinstance(args[1], _Atom)
             #TODO: Allow call with no variables
             assert args[0].is_var() or args[1].is_var()
-            #TODO: Wrap in a formatter, unpacking dicts
             return _wrap_pairs_iterator(cached, *args)
         return resulting_method
     return actual_decorator
+
+def matches(tuple_iterator, *args):
+    var_indexes = dict()
+    for index, arg in enumerate(args):
+        if arg.is_var():
+            var_indexes[arg] = index
+        else:
+            tuple_iterator = ifilter(lambda t: t[index] == arg, tuple_iterator)
+    map = lambda t : {v : t[var_indexes[v]] for v in var_indexes}
+    return _Wrap(map(t) for t in tuple_iterator)
 
 def rule(func):
     def resulting_method(self, *args):

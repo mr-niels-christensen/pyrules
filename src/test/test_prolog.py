@@ -1,5 +1,5 @@
 import unittest
-from pyrules2.prolog import var, atom, pairs, rule, RuleBook
+from pyrules2.prolog import matches, var, atom, pairs, rule, RuleBook
 from itertools import permutations, product, chain
 '''Example: Family relations
 
@@ -8,11 +8,12 @@ from itertools import permutations, product, chain
 '''
 
 class Family(RuleBook):
-    @pairs(product([atom.frederik, atom.mary], 
-                   [atom.christian, atom.isabella, 
-                    atom.vincent, atom.josephine]))
+    @rule
     def children(self, parent, child):
-        pass
+        return matches(product([atom.frederik, atom.mary], 
+                   [atom.christian, atom.isabella, 
+                    atom.vincent, atom.josephine]),
+        parent, child)
 
     @pairs(chain(permutations([atom.frederik, atom.mary]),
                  permutations([atom.joachim, atom.marie])))
