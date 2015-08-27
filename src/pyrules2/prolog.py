@@ -33,7 +33,6 @@ class _Var(object):
 
 class _Atom(object):
     def __init__(self, name):
-        #TODO Associate with Rulebook?
         self._name = name
 
     def is_var(self):
@@ -47,6 +46,9 @@ class _Atom(object):
             return True
         return self._name != other._name
 
+    def __hash__(self):
+        return hash(self._name)
+
     def __str__(self):
         return 'atom.{}'.format(self._name)
 
@@ -55,21 +57,6 @@ class _Atom(object):
 
 var = _Namespace(_Var)
 atom = _Namespace(_Atom)
-
-def pairs(pairs_iterator):
-    #TODO Make into a decorator object
-    cached = set(pairs_iterator)
-    #TODO Check/use func's arguments and allow kwargs
-    def actual_decorator(_func):
-        def resulting_method(self, *args):
-            assert len(args) == 2
-            assert isinstance(args[0], _Var) or isinstance(args[0], _Atom)
-            assert isinstance(args[1], _Var) or isinstance(args[1], _Atom)
-            #TODO: Allow call with no variables
-            assert args[0].is_var() or args[1].is_var()
-            return _wrap_pairs_iterator(cached, *args)
-        return resulting_method
-    return actual_decorator
 
 def matches(tuple_iterator, *args):
     var_indexes = dict()
@@ -86,17 +73,6 @@ def rule(func):
         assert all(isinstance(arg, _Var) or isinstance(arg, _Atom) for arg in args)
         return func(self, *args).set_args(*args)
     return resulting_method
-
-def _wrap_pairs_iterator(pairs_iterator, arg0, arg1):
-        if arg0.is_var() and arg1.is_var():
-            wrapped = ({arg0:x, arg1:y} for (x, y) in pairs_iterator)
-            return _Wrap(wrapped).set_args(arg0, arg1)
-        if arg0.is_var():
-            wrapped = ({arg0:x} for (x, y) in pairs_iterator if y == arg1)
-            return _Wrap(wrapped).set_args(arg0, arg1)
-        if arg1.is_var():
-            wrapped = ({arg1:y} for (x, y) in pairs_iterator if x == arg0)
-            return _Wrap(wrapped).set_args(arg0, arg1)
 
 class _Wrap(object):
     def __init__(self, wrapped):
