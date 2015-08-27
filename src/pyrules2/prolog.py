@@ -59,7 +59,9 @@ var = _Namespace(_Var)
 atom = _Namespace(_Atom)
 
 def matches(tuple_iterator, *args):
+    #TODO consider better syntactical sugar, e.g. find(x,y).in([...]) or something corresponding to reduce(|,match(x,y,foo) for foo in [...])
     var_indexes = dict()
+    #TODO handle when same var appears multipe times
     for index, arg in enumerate(args):
         if arg.is_var():
             var_indexes[arg] = index
