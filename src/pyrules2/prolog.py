@@ -4,6 +4,7 @@ from uuid import uuid4
 import urllib2
 import urllib
 import csv
+import inspect
 
 class RuleBook(object):
     pass
@@ -82,7 +83,8 @@ def rule(func):
     return resulting_method
 
 def wikipedia(func):
-    #TODO: The method must be binary
+    num_args = len(inspect.getargspec(func)[0])
+    assert num_args == 3, 'wikipedia predicate must have 3 arguments ("self" plus two), but {} had {}'.format(func.func_name, num_args)
     def resulting_method(self, x, y):
         return matches(_wikipedia_tuples(func.func_name), x, y)
     return resulting_method
