@@ -91,19 +91,25 @@ _PARAMETERS = {'default-graph-uri' : 'http://dbpedia.org',
                'format' : 'text/csv',
                'timeout' : '30000'}
 _Q1 = '''select * where {?x <http://dbpedia.org/property/'''
-_Q2 = '''> ?y . FILTER (isURI(?y)) } LIMIT 200'''
+_Q2 = '''> ?y . FILTER (isURI(?y)) } LIMIT 200 OFFSET '''
 
 def _wikipedia_tuples(name):
-    #TODO Iterate over batches of 200, don't stop with the first
-    pars = dict(_PARAMETERS)
-    pars['query'] = _Q1 + name + _Q2
-    url = 'http://dbpedia.org/sparql?' + urllib.urlencode(pars)
-    csv_input = urllib2.urlopen(url, timeout=29)
-    for row in csv.DictReader(csv_input):
-        try:
-            yield (_to_atom(row['x']), _to_atom(row['y']))
-        except _NotDBpediaResource:
-            pass
+    index = 0
+    while (True):
+        pars = dict(_PARAMETERS)
+        pars['query'] = _Q1 + name + _Q2 + str(index)
+        url = 'http://dbpedia.org/sparql?' + urllib.urlencode(pars)
+        csv_input = urllib2.urlopen(url, timeout=29)
+        count = 0
+        for row in csv.DictReader(csv_input):
+            count += 1
+            try:
+                yield (_to_atom(row['x']), _to_atom(row['y']))
+            except _NotDBpediaResource:
+                pass
+        if count < 190:
+            break
+        index += count
 
 class _NotDBpediaResource(Exception):
     pass
