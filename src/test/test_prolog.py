@@ -1,6 +1,6 @@
 import unittest
-from pyrules2.prolog import matches, var, atom, rule, RuleBook
-from itertools import permutations, product, chain
+from pyrules2.prolog import wikipedia, matches, var, atom, rule, RuleBook
+from itertools import islice, permutations, product, chain
 
 '''Example: Family relations
 
@@ -40,6 +40,17 @@ class Family(RuleBook):
                (self.sibling(aunt, x) |
                 (self.spouse(aunt, y) & self.sibling(y, x))))
 
+class World(RuleBook):
+    @rule
+    @wikipedia
+    def children(self, parent, child):
+        pass
+
+    @rule
+    def grandchild(self, x, z):
+        y = var.y
+        return (self.children(x, y) & self.children(y, z))
+
 class Test(unittest.TestCase):
     def test_family(self):
         tuples = (aunt_niece for aunt_niece in Family().aunt(var.x, var.y))
@@ -47,6 +58,10 @@ class Test(unittest.TestCase):
         self.assertEqual(
             set(tuples),
             set(expected))
+
+    def test_world(self):
+        for (x, z) in islice(World().grandchild(var.x, var.z), 10):
+            print '{} is grandchild of {}'.format(z,x)
             
 if __name__ == "__main__":
     unittest.main()

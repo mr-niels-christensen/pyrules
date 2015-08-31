@@ -1,6 +1,9 @@
 from itertools import imap, ifilter, product
 from collections import deque
 from uuid import uuid4
+import urllib2
+import urllib
+import csv
 
 class RuleBook(object):
     pass
@@ -59,7 +62,9 @@ var = _Namespace(_Var)
 atom = _Namespace(_Atom)
 
 def matches(tuple_iterator, *args):
-    #TODO consider better syntactical sugar, e.g. find(x,y).in([...]) or something corresponding to reduce(|,match(x,y,foo) for foo in [...])
+    #TODO consider better syntactical sugar, e.g. find(x,y).in([...])
+    #or something corresponding to reduce(|,match(x,y,foo) for foo in [...])
+    #or @rule(style=tuples) def p(x,y): return [...]
     var_indexes = dict()
     #TODO handle when same var appears multipe times
     for index, arg in enumerate(args):
@@ -75,6 +80,41 @@ def rule(func):
         assert all(isinstance(arg, _Var) or isinstance(arg, _Atom) for arg in args)
         return func(self, *args).set_args(*args)
     return resulting_method
+
+def wikipedia(func):
+    #TODO: The method must be binary
+    def resulting_method(self, x, y):
+        return matches(_wikipedia_tuples(func.func_name), x, y)
+    return resulting_method
+
+_PARAMETERS = {'default-graph-uri' : 'http://dbpedia.org',
+               'format' : 'text/csv',
+               'timeout' : '30000'}
+_Q1 = '''select * where {?x <http://dbpedia.org/property/'''
+_Q2 = '''> ?y . FILTER (isURI(?y)) } LIMIT 200'''
+
+def _wikipedia_tuples(name):
+    #TODO Iterate over batches of 200, don't stop with the first
+    pars = dict(_PARAMETERS)
+    pars['query'] = _Q1 + name + _Q2
+    url = 'http://dbpedia.org/sparql?' + urllib.urlencode(pars)
+    csv_input = urllib2.urlopen(url, timeout=29)
+    for row in csv.DictReader(csv_input):
+        try:
+            yield (_to_atom(row['x']), _to_atom(row['y']))
+        except _NotDBpediaResource:
+            pass
+
+class _NotDBpediaResource(Exception):
+    pass
+
+_DBPRES = 'http://dbpedia.org/resource/'
+
+def _to_atom(dbpedia_resource_url):
+    parts = dbpedia_resource_url.split(_DBPRES)
+    if len(parts) < 2:
+        raise _NotDBpediaResource()
+    return _Atom(parts[1])
 
 class _Wrap(object):
     def __init__(self, wrapped):
