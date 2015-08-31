@@ -16,48 +16,40 @@ class _Namespace(object):
     def __getattr__(self, name):
         return self._ctor(name)
 
-class _Var(object):
-    def __init__(self, name):
-        self._name = '{}_{}'.format(name, str(uuid4()).replace('-','_'))
-                
-    def is_var(self):
-        return True
-
-    def __eq__(self, other):
-        return isinstance(other, _Var) and self._name == other._name
-
-    def __hash__(self):
-        return hash(self._name)
-
-    def __str__(self):
-        return '?{}'.format(self._name)
-
-    def __repr__(self):
-        return '<?{}>'.format(self._name)
-
-class _Atom(object):
+class _NamespaceItem(object):
     def __init__(self, name):
         self._name = name
 
-    def is_var(self):
-        return False
-
     def __eq__(self, other):
-        return isinstance(other, _Atom) and self._name == other._name
+        return isinstance(other, type(self)) and self._name == other._name
 
     def __ne__(self, other):
-        if not isinstance(other, _Atom):
+        if not isinstance(other, type(self)):
             return True
         return self._name != other._name
 
     def __hash__(self):
         return hash(self._name)
 
+    def __repr__(self):
+        return '{}({})'.format(type(self).__name__, self._name)
+
+class _Var(_NamespaceItem):
+    def __init__(self, name):
+        super(_Var, self).__init__('{}_{}'.format(name, str(uuid4()).replace('-','_')))
+                
+    def is_var(self):
+        return True
+
+    def __str__(self):
+        return '?{}'.format(self._name)
+
+class _Atom(_NamespaceItem):
+    def is_var(self):
+        return False
+
     def __str__(self):
         return 'atom.{}'.format(self._name)
-
-    def __repr__(self):
-        return '<atom.{}>'.format(self._name)
 
 var = _Namespace(_Var)
 atom = _Namespace(_Atom)
