@@ -42,3 +42,10 @@ class _Atom(_NamespaceItem):
     def __str__(self):
         return 'atom.{}'.format(self._name)
 
+var = _Namespace(_Var)
+atom = _Namespace(_Atom)
+
+def is_term(x):
+    return isinstance(x, _NamespaceItem)
+
+

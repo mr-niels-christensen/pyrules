@@ -1,12 +1,9 @@
 from itertools import imap, ifilter, product
 from collections import deque
-from prolog_like_terms import _Namespace, _Var, _Atom
+from prolog_like_terms import is_term
 
 class RuleBook(object):
     pass
-
-var = _Namespace(_Var)
-atom = _Namespace(_Atom)
 
 def matches(tuple_iterator, *args):
     #TODO consider better syntactical sugar, e.g. find(x,y).in([...])
@@ -24,7 +21,7 @@ def matches(tuple_iterator, *args):
 
 def rule(func):
     def resulting_method(self, *args):
-        assert all(isinstance(arg, _Var) or isinstance(arg, _Atom) for arg in args)
+        assert all(is_term(arg) for arg in args)
         return func(self, *args).set_args(*args)
     return resulting_method
 
