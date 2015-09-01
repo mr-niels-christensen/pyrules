@@ -1,5 +1,5 @@
 import unittest
-from pyrules2 import wikipedia, matches, var, atom, rule, RuleBook
+from pyrules2 import limit, wikipedia, matches, var, atom, rule, RuleBook
 from itertools import islice, permutations, product, chain
 
 '''Example: Family relations
@@ -42,7 +42,7 @@ class Family(RuleBook):
 
 class World(RuleBook):
     @rule
-    #TODO @limit(200)
+    @limit(200)
     @wikipedia
     def children(self, parent, child):
         pass
@@ -61,8 +61,8 @@ class Test(unittest.TestCase):
             set(expected))
 
     def test_world(self):
-        for (x, z) in islice(World().grandchild(var.x, var.z), 10):
-            print '{} is grandchild of {}'.format(z,x)
+        pairs = set(World().grandchild(var.x, var.z))
+        self.assertIn((atom.Barron_Hilton, atom.Paris_Hilton), pairs)
             
 if __name__ == "__main__":
     unittest.main()

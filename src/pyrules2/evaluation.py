@@ -1,9 +1,17 @@
-from itertools import imap, ifilter, product
+from itertools import imap, ifilter, product, islice
 from collections import deque
 from prolog_like_terms import is_term
+from functools import wraps
 
 class RuleBook(object):
     pass
+
+def limit(max_results):
+    def _limit(method):
+        def _resulting_method(self, *args, **kwargs):
+            return _Wrap(islice(method(self, *args, **kwargs), max_results))
+        return wraps(method)(_resulting_method)
+    return _limit
 
 def matches(tuple_iterator, *args):
     #TODO consider better syntactical sugar, e.g. find(x,y).in([...])
