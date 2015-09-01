@@ -49,7 +49,7 @@ class _Wrap(object):
 
     def __or__(self, other):
         assert isinstance(other, _Wrap)
-        return _Wrap(roundrobin(self._wrapped, other._wrapped))
+        return _Wrap(_roundrobin(self._wrapped, other._wrapped))
 
 def _union(ds):
     d0, d1 = ds
@@ -64,8 +64,8 @@ def _compatible(ds):
             return False
     return True
 
-def roundrobin(*iterables):
-    '''Splices the given iterables, see
+def _roundrobin(*iterables):
+    '''Splices the given iterables fairly, see
        http://bugs.python.org/issue1757395
     '''
     pending = deque(iter(i).next for i in reversed(iterables))
