@@ -1,5 +1,5 @@
 import unittest
-from pyrules2.prolog import wikipedia, matches, var, atom, rule, RuleBook
+from pyrules2 import wikipedia, matches, var, atom, rule, RuleBook
 from itertools import islice, permutations, product, chain
 
 '''Example: Family relations
