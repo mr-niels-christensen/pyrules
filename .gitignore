@@ -1,6 +1,6 @@
 venv
 .*.made
-
+.idea
 *.py[cod]
 
 # C extensions
