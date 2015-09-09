@@ -4,15 +4,25 @@ import csv
 import inspect
 from prolog_like_terms import _Atom
 from evaluation import matches
+from functools import wraps
 
 
 def wikipedia(func):
+    """
+    Example usage:
+    @wikipedia
+    def spouse(self, x, y):
+        pass # Magic will go to DBpedia
+    :param func: A function a 3 arguments: self + two to match in DBpedia
+    :return: A method that matches the two non-self arguments to
+     the DBpedia property with the same name as func
+    """
     num_args = len(inspect.getargspec(func)[0])
     assert num_args == 3, 'wikipedia predicate must have 3 arguments ("self" plus two), but {} had {}'.format(func.func_name, num_args)
 
     def resulting_method(self, x, y):
         return matches(_wikipedia_tuples(func.func_name), x, y)
-    return resulting_method
+    return wraps(func)(resulting_method)
 
 _PARAMETERS = {'default-graph-uri' : 'http://dbpedia.org',
                'format' : 'text/csv',
