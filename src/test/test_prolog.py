@@ -62,7 +62,7 @@ class Test(unittest.TestCase):
 
     def test_world(self):
         pairs = set(World().grandchild(var.x, var.z))
-        self.assertIn((atom.Barron_Hilton, atom.Paris_Hilton), pairs)
+        self.assertIn((atom.Abd_Manaf_ibn_Qusai, atom.Umayya_ibn_Abd_Shams), pairs)
             
 if __name__ == "__main__":
     unittest.main()

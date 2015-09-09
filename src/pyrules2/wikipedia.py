@@ -16,7 +16,7 @@ _PARAMETERS = {'default-graph-uri' : 'http://dbpedia.org',
                'format' : 'text/csv',
                'timeout' : '30000'}
 _Q1 = '''select * where {?x <http://dbpedia.org/property/'''
-_Q2 = '''> ?y . FILTER (isURI(?y)) } LIMIT 200 OFFSET '''
+_Q2 = '''> ?y . FILTER (isURI(?y)) } ORDER BY ?x ?y LIMIT 200 OFFSET '''
 
 def _wikipedia_tuples(name):
     index = 0
