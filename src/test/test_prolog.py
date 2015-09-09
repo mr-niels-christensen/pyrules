@@ -64,7 +64,8 @@ class Test(unittest.TestCase):
         self.assertIn((atom.Abd_Manaf_ibn_Qusai, atom.Umayya_ibn_Abd_Shams), pairs)
 
     def test_pattern_matching(self):
-        self.assertEqual(set(Family().aunt(var.x, var.x)), set())
+        x = var.x
+        self.assertEqual(set(Family().aunt(x, x)), set())
 
 if __name__ == "__main__":
     unittest.main()

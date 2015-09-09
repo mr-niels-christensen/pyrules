@@ -1,5 +1,5 @@
 from itertools import imap, ifilter, product, islice
-from collections import deque
+from collections import deque, defaultdict
 from prolog_like_terms import is_term
 from functools import wraps
 
@@ -97,15 +97,21 @@ def matches(tuple_iterator, *args):
 
 
 def _dict_iterator_for_matches(tuple_iterator, args):
-    var_indexes = dict()
-    # TODO handle when same var appears multiple times
+    var_index_dict = _var_index_dict(args)
+    # In case of e.g. self.p(var.x, var.x), match variables
+    for var, index_list in var_index_dict.iteritems():
+        first_index = index_list[0]
+        for other_index in index_list[1:]:
+            print other_index
+            tuple_iterator = ifilter(lambda t: t[first_index] == t[other_index], tuple_iterator)
+    # Match given constants
     for index, arg in enumerate(args):
-        if arg.is_var():
-            var_indexes[arg] = index
-        else:
+        if not arg.is_var():
             tuple_iterator = ifilter(lambda t: t[index] == arg, tuple_iterator)
-    map = lambda t: {v: t[var_indexes[v]] for v in var_indexes}
-    return (map(t) for t in tuple_iterator)
+
+    def tuple_to_dict(t):
+        return {v: t[var_index_dict[v][0]] for v in var_index_dict}
+    return (tuple_to_dict(t) for t in tuple_iterator)
 
 
 def rule(func):
@@ -126,6 +132,19 @@ def rule(func):
             return tuple(d[arg] for arg in args if arg.is_var())
         return (projection(d) for d in dict_iterator)
     return wraps(func)(resulting_method)
+
+
+def _var_index_dict(args):
+    """
+    :param args: A tuple of terms, e.g. (var.x, atom.F, var.x, var.y)
+    :return: A dict mapping every occurring variable to the list of indexes
+     at which it occurs in args, e.g. {var.x: [0, 2], var.y: [3]}
+    """
+    d = defaultdict(list)
+    for index, arg in enumerate(args):
+        if arg.is_var():
+            d[arg].append(index)
+    return d
 
 
 def _union(ds):
