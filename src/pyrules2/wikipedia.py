@@ -5,9 +5,11 @@ import inspect
 from prolog_like_terms import _Atom
 from evaluation import matches
 
+
 def wikipedia(func):
     num_args = len(inspect.getargspec(func)[0])
     assert num_args == 3, 'wikipedia predicate must have 3 arguments ("self" plus two), but {} had {}'.format(func.func_name, num_args)
+
     def resulting_method(self, x, y):
         return matches(_wikipedia_tuples(func.func_name), x, y)
     return resulting_method
@@ -18,9 +20,10 @@ _PARAMETERS = {'default-graph-uri' : 'http://dbpedia.org',
 _Q1 = '''select * where {?x <http://dbpedia.org/property/'''
 _Q2 = '''> ?y . FILTER (isURI(?y)) } ORDER BY ?x ?y LIMIT 200 OFFSET '''
 
+
 def _wikipedia_tuples(name):
     index = 0
-    while (True):
+    while True:
         pars = dict(_PARAMETERS)
         pars['query'] = _Q1 + name + _Q2 + str(index)
         url = 'http://dbpedia.org/sparql?' + urllib.urlencode(pars)
@@ -36,10 +39,12 @@ def _wikipedia_tuples(name):
             break
         index += count
 
+
 class _NotDBpediaResource(Exception):
     pass
 
 _DBPRES = 'http://dbpedia.org/resource/'
+
 
 def _to_atom(dbpedia_resource_url):
     parts = dbpedia_resource_url.split(_DBPRES)
