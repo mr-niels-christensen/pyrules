@@ -11,6 +11,7 @@ from itertools import islice, permutations, product, chain
 _FRED_MARY_OFFSPRING = [atom.christian, atom.isabella, 
                         atom.vincent, atom.josephine]
 
+
 class Family(RuleBook):
     def children(self, parent, child):
         return matches(
@@ -22,7 +23,7 @@ class Family(RuleBook):
         return matches(
             chain(permutations([atom.frederik, atom.mary]),
                   permutations([atom.joachim, atom.marie])),
-            x ,y)
+            x, y)
 
     def sibling(self, x, y):
         return matches(
@@ -37,6 +38,7 @@ class Family(RuleBook):
                (self.sibling(aunt, x) |
                 (self.spouse(aunt, y) & self.sibling(y, x))))
 
+
 class World(RuleBook):
     @limit(200)
     @wikipedia
@@ -46,7 +48,8 @@ class World(RuleBook):
     @rule
     def grandchild(self, x, z):
         y = var.y
-        return (self.children(x, y) & self.children(y, z))
+        return self.children(x, y) & self.children(y, z)
+
 
 class Test(unittest.TestCase):
     def test_family(self):
