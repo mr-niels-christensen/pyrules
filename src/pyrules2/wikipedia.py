@@ -3,7 +3,7 @@ import urllib
 import csv
 import inspect
 from prolog_like_terms import _Atom
-from prolog import matches
+from evaluation import matches
 
 def wikipedia(func):
     num_args = len(inspect.getargspec(func)[0])
