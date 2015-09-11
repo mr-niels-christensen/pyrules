@@ -1,8 +1,35 @@
 from itertools import imap, ifilter, product, islice
 from collections import deque, defaultdict
-from prolog_like_terms import is_term, Namespace, Var
+from prolog_like_terms import is_term, Namespace, Var, var
 from functools import wraps
 import inspect
+
+LOCAL = object()
+
+'''STATUS: RuleBook._dispatch() has been changed to take the original_method instead of its name,
+but this has not been adapted in _ParseTree. Note that CALL nodes do not have access to the
+original_method.
+
+_ParseTree is now constructed with a full set of free variables,
+and _dispatch translates args into a reasonable environment.
+
+I still need to fix the projection - need to think about how this works for CALL nodes
+'''
+def rule(func):
+    """
+    Example usage:
+    @rule # Call p like this: for y in r.p(atom.A, var.y): print y
+    def p(self, x, y):
+        return matches([(atom.A, atom.B), (atom.C, atom.D)], x, y)
+    :param func: A method returning a program.
+    :return: Solutions
+    """
+    def resulting_method(self, *args):
+        assert all(is_term(arg) for arg in args)
+        return self._dispatch(func, args)
+    new_method_wrapped = wraps(func)(resulting_method)
+    new_method_wrapped.pyrules = {'original_method': func}
+    return new_method_wrapped
 
 
 class _VirtualSelf(object):
@@ -12,8 +39,6 @@ class _VirtualSelf(object):
     to another @rule is transformed into a node in the rule's
     _ParseTree. The call itself is not perfomed.
     """
-    def __init__(self, method_name):
-        self.var = Namespace(Var, method_name)
 
     def __getattr__(self, name):
         def virtual_method(virtual_self, *args):
@@ -29,10 +54,10 @@ class RuleBook(object):
     The method itself is changed into a call to RuleBook._dispatch()
     """
     def __init__(self):
-        '''
+        """
         Parses every @rule-decorated method and adds these to the internal
         registry of _ParseTrees.
-        '''
+        """
         self._parse_trees = dict()
         for attribute_name in dir(self):
             attribute = getattr(self, attribute_name)
@@ -41,27 +66,31 @@ class RuleBook(object):
         print self._parse_trees
 
     def _register(self, method):
-        '''
+        """
         Parses the given method into a _ParseTree and adds it
         to the internal register under the method's original name.
         :param method: A @rule-decorated method of this object
-        '''
+        """
         original_method = method.pyrules['original_method']
-        # TODO: Proper handling of arguments
-        virtual_self = _VirtualSelf(original_method.func_name)
-        args = [virtual_self.var.__getattr__(arg) for arg in inspect.getargspec(original_method)[0][1:]]
+        # def f(x,y,z=LOCAL) will be given (var.x, var.y, var.z) as arguments
+        args = [var.__getattr__(arg) for arg in inspect.getargspec(original_method)[0][1:]]
         # Call original method and store the returned _ParseTree
-        self._parse_trees[original_method.func_name] = original_method(virtual_self, *args)
+        self._parse_trees[original_method.func_name] = original_method(_VirtualSelf(), *args)
 
-    def _dispatch(self, method_name, args):
+    def _dispatch(self, original_method, args):
         '''
         Executes a query to one of this RuleBook's @rule-decorated methods.
         :param method_name: The name of the method to query, e.g. 'child'
         :param args: TODO
         :return: An iterator of tuples TODO
         '''
-        parse_tree = self._parse_trees[method_name]
-        dict_iterator = parse_tree.to_dict_iterator(self)
+        parse_tree = self._parse_trees[original_method.func_name]
+        parse_tree_args = [var.__getattr__(arg) for arg in inspect.getargspec(original_method)[0][1:]]
+        env = {arg : arg for arg in parse_tree_args}
+        for index, arg in enumerate(args):
+            if not arg.is_var():
+                env[parse_tree_args[index]] = arg
+        dict_iterator = parse_tree.to_dict_iterator(env)
 
         def projection(d): # For each dict, extract variable assignments in order
             return tuple(d[arg] for arg in args if arg.is_var())
@@ -185,23 +214,6 @@ def _dict_iterator_for_matches(tuple_iterator, args):
     def tuple_to_dict(t):
         return {v: t[var_index_dict[v][0]] for v in var_index_dict}
     return (tuple_to_dict(t) for t in tuple_iterator)
-
-
-def rule(func):
-    """
-    Example usage:
-    @rule # Call p like this: for y in r.p(atom.A, var.y): print y
-    def p(self, x, y):
-        return matches([(atom.A, atom.B), (atom.C, atom.D)], x, y)
-    :param func: A method returning a program.
-    :return: Solutions
-    """
-    def resulting_method(self, *args):
-        assert all(is_term(arg) for arg in args)
-        return self._dispatch(func.func_name, args)
-    new_method_wrapped = wraps(func)(resulting_method)
-    new_method_wrapped.pyrules = {'original_method': func}
-    return new_method_wrapped
 
 
 def _var_index_dict(args):

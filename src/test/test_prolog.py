@@ -1,5 +1,5 @@
 import unittest
-from pyrules2 import limit, wikipedia, matches, var, atom, rule, RuleBook
+from pyrules2 import limit, wikipedia, matches, var, atom, rule, RuleBook, LOCAL
 from itertools import islice, permutations, product, chain
 
 '''Example: Family relations
@@ -34,10 +34,8 @@ class Family(RuleBook):
             x, y)
 
     @rule
-    def aunt(self, aunt, niece):
-        x = self.var.x
-        y = self.var.y
-        return (self.children(x, niece) & 
+    def aunt(self, aunt, niece, x=LOCAL, y=LOCAL):
+        return (self.children(x, niece) &
                (self.sibling(aunt, x) |
                 (self.spouse(aunt, y) & self.sibling(y, x))))
 
@@ -50,8 +48,7 @@ class World(RuleBook):
         pass
 
     @rule
-    def grandchild(self, x, z):
-        y = self.var.y
+    def grandchild(self, x, z, y=LOCAL):
         return self.children(x, y) & self.children(y, z)
 
 
