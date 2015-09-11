@@ -5,7 +5,24 @@ from functools import wraps
 
 
 class RuleBook(object):
-    pass
+    def __init__(self):
+        self._parse_trees = dict()
+        for method in [method for method in dir(object) if hasattr(method, 'pyrules')]:
+            self._register(method)
+
+    def _register(self, method):
+        original_method = method.pyrules['original_method']
+        virtual_self = None
+        args = []
+        self._parse_trees[original_method.func_name] = original_method(virtual_self, args)
+
+    def _dispatch(self, method_name, *args):
+        parse_tree = self._parse_trees[method_name]
+        dict_iterator = parse_tree.to_dict_iterator()
+
+        def projection(d):
+            return tuple(d[arg] for arg in args if arg.is_var())
+        return (projection(d) for d in dict_iterator)
 
 
 class _ParseTree(object):
@@ -125,13 +142,10 @@ def rule(func):
     """
     def resulting_method(self, *args):
         assert all(is_term(arg) for arg in args)
-        parse_tree = func(self, *args)
-        dict_iterator = parse_tree.to_dict_iterator()
-
-        def projection(d):
-            return tuple(d[arg] for arg in args if arg.is_var())
-        return (projection(d) for d in dict_iterator)
-    return wraps(func)(resulting_method)
+        return self._dispatch(func.func_name, *args)
+    new_method_wrapped = wraps(func)(resulting_method)
+    new_method_wrapped.pyrules = {'original_method': func}
+    return new_method_wrapped
 
 
 def _var_index_dict(args):
