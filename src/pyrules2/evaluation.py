@@ -1,24 +1,42 @@
 from itertools import imap, ifilter, product, islice
 from collections import deque, defaultdict
-from prolog_like_terms import is_term
+from prolog_like_terms import is_term, Namespace, Var
 from functools import wraps
+import inspect
+
+
+class _VirtualSelf(object):
+    def __init__(self, method_name):
+        self.var = Namespace(Var, method_name)
+
+    def __getattr__(self, name):
+        def virtual_method(virtual_self, *args):
+            return _ParseTree(_ParseTree.CALL, method_name=name, args=args)
+        return virtual_method
 
 
 class RuleBook(object):
     def __init__(self):
         self._parse_trees = dict()
-        for method in [method for method in dir(object) if hasattr(method, 'pyrules')]:
-            self._register(method)
+        for attribute_name in dir(self):
+            attribute = getattr(self, attribute_name)
+            if hasattr(attribute, 'pyrules'):
+                print attribute_name
+                self._register(attribute)
 
     def _register(self, method):
         original_method = method.pyrules['original_method']
-        virtual_self = None
-        args = []
-        self._parse_trees[original_method.func_name] = original_method(virtual_self, args)
+        virtual_self = _VirtualSelf(original_method.func_name)
+        args = [virtual_self.var.__getattr__(arg) for arg in inspect.getargspec(original_method)[0][1:]]#TODO
+        print '{}: {}'.format(original_method.func_name, args)
 
-    def _dispatch(self, method_name, *args):
+        self._parse_trees[original_method.func_name] = original_method(virtual_self, *args)
+
+    def _dispatch(self, method_name, args, return_tuples=True):
         parse_tree = self._parse_trees[method_name]
-        dict_iterator = parse_tree.to_dict_iterator()
+        dict_iterator = parse_tree.to_dict_iterator(self)
+        if not return_tuples:
+            return dict_iterator
 
         def projection(d):
             return tuple(d[arg] for arg in args if arg.is_var())
@@ -38,9 +56,10 @@ class _ParseTree(object):
          i.e. the ones where a variable has compatible values.
     OR: get results from child trees and return the union of these.
     LIMIT: get the initial results from the child tree.
+    CALL: get the results from a rule in a RuleBook
     """
-    MATCHES, AND, OR, LIMIT = range(4)
-    NODE_TYPES = set([MATCHES, AND, OR, LIMIT])
+    MATCHES, AND, OR, LIMIT, CALL = range(5)
+    NODE_TYPES = set([MATCHES, AND, OR, LIMIT, CALL])
 
     def __init__(self, node_type, *sub_trees, **parameters):
         assert node_type in _ParseTree.NODE_TYPES
@@ -56,12 +75,12 @@ class _ParseTree(object):
         assert isinstance(other, _ParseTree)
         return _ParseTree(_ParseTree.OR, self, other)
 
-    def to_dict_iterator(self):
+    def to_dict_iterator(self, rule_book):
         """
         This is the "code generation" method.
         :return: An iterator of dicts. Each dict maps variables to concrete values.
         """
-        sub_iterators = [s.to_dict_iterator() for s in self._sub_trees]
+        sub_iterators = [s.to_dict_iterator(rule_book) for s in self._sub_trees]
         if self._node_type == _ParseTree.MATCHES:
             return _dict_iterator_for_matches(self._parameters['tuple_iterator'],
                                               self._parameters['args'])
@@ -71,6 +90,8 @@ class _ParseTree(object):
             return _roundrobin(*sub_iterators)
         elif self._node_type == _ParseTree.LIMIT:
             return islice(sub_iterators[0], self._parameters['max_results'])
+        elif self._node_type == _ParseTree.CALL:
+            return rule_book._dispatch(self._parameters['method_name'], self._parameters['args'], return_tuples=False)
         else:
             raise Exception('Invalid node type: {}'.format(self._node_type))
 
@@ -142,7 +163,7 @@ def rule(func):
     """
     def resulting_method(self, *args):
         assert all(is_term(arg) for arg in args)
-        return self._dispatch(func.func_name, *args)
+        return self._dispatch(func.func_name, args)
     new_method_wrapped = wraps(func)(resulting_method)
     new_method_wrapped.pyrules = {'original_method': func}
     return new_method_wrapped

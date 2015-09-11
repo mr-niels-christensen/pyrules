@@ -13,18 +13,21 @@ _FRED_MARY_OFFSPRING = [atom.christian, atom.isabella,
 
 
 class Family(RuleBook):
+    @rule
     def children(self, parent, child):
         return matches(
             product([atom.frederik, atom.mary], 
                     _FRED_MARY_OFFSPRING),
             parent, child)
 
+    @rule
     def spouse(self, x, y):
         return matches(
             chain(permutations([atom.frederik, atom.mary]),
                   permutations([atom.joachim, atom.marie])),
             x, y)
 
+    @rule
     def sibling(self, x, y):
         return matches(
             permutations([atom.frederik, atom.joachim]),
@@ -32,14 +35,15 @@ class Family(RuleBook):
 
     @rule
     def aunt(self, aunt, niece):
-        x = var.x
-        y = var.y
+        x = self.var.x
+        y = self.var.y
         return (self.children(x, niece) & 
                (self.sibling(aunt, x) |
                 (self.spouse(aunt, y) & self.sibling(y, x))))
 
 
 class World(RuleBook):
+    @rule
     @limit(200)
     @wikipedia
     def children(self, parent, child):
@@ -47,7 +51,7 @@ class World(RuleBook):
 
     @rule
     def grandchild(self, x, z):
-        y = var.y
+        y = self.var.y
         return self.children(x, y) & self.children(y, z)
 
 
