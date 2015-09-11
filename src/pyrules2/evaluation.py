@@ -6,6 +6,12 @@ import inspect
 
 
 class _VirtualSelf(object):
+    """
+    A _VirtualSelf is used when parsing a @rule in a RuleBook.
+    The _VirtualSelf is passed as the "self" argument, and any call
+    to another @rule is transformed into a node in the rule's
+    _ParseTree. The call itself is not perfomed.
+    """
     def __init__(self, method_name):
         self.var = Namespace(Var, method_name)
 
@@ -16,29 +22,48 @@ class _VirtualSelf(object):
 
 
 class RuleBook(object):
+    """
+    A RuleBook combines a number of rules, i.e. methods decorated with @rule,
+    and answers queries to these. When an instance of the RuleBook is
+    constructed, every @rule is parsed, i.e. transformed into a _ParseTree.
+    The method itself is changed into a call to RuleBook._dispatch()
+    """
     def __init__(self):
+        '''
+        Parses every @rule-decorated method and adds these to the internal
+        registry of _ParseTrees.
+        '''
         self._parse_trees = dict()
         for attribute_name in dir(self):
             attribute = getattr(self, attribute_name)
             if hasattr(attribute, 'pyrules'):
-                print attribute_name
                 self._register(attribute)
+        print self._parse_trees
 
     def _register(self, method):
+        '''
+        Parses the given method into a _ParseTree and adds it
+        to the internal register under the method's original name.
+        :param method: A @rule-decorated method of this object
+        '''
         original_method = method.pyrules['original_method']
+        # TODO: Proper handling of arguments
         virtual_self = _VirtualSelf(original_method.func_name)
-        args = [virtual_self.var.__getattr__(arg) for arg in inspect.getargspec(original_method)[0][1:]]#TODO
-        print '{}: {}'.format(original_method.func_name, args)
-
+        args = [virtual_self.var.__getattr__(arg) for arg in inspect.getargspec(original_method)[0][1:]]
+        # Call original method and store the returned _ParseTree
         self._parse_trees[original_method.func_name] = original_method(virtual_self, *args)
 
-    def _dispatch(self, method_name, args, return_tuples=True):
+    def _dispatch(self, method_name, args):
+        '''
+        Executes a query to one of this RuleBook's @rule-decorated methods.
+        :param method_name: The name of the method to query, e.g. 'child'
+        :param args: TODO
+        :return: An iterator of tuples TODO
+        '''
         parse_tree = self._parse_trees[method_name]
         dict_iterator = parse_tree.to_dict_iterator(self)
-        if not return_tuples:
-            return dict_iterator
 
-        def projection(d):
+        def projection(d): # For each dict, extract variable assignments in order
             return tuple(d[arg] for arg in args if arg.is_var())
         return (projection(d) for d in dict_iterator)
 
@@ -58,6 +83,7 @@ class _ParseTree(object):
     LIMIT: get the initial results from the child tree.
     CALL: get the results from a rule in a RuleBook
     """
+    _NODE_TYPE_LIST = ['MATCHES', 'AND', 'OR', 'LIMIT', 'CALL']
     MATCHES, AND, OR, LIMIT, CALL = range(5)
     NODE_TYPES = set([MATCHES, AND, OR, LIMIT, CALL])
 
@@ -66,6 +92,12 @@ class _ParseTree(object):
         self._node_type = node_type
         self._sub_trees = sub_trees
         self._parameters = parameters
+
+    def __repr__(self, indent=''):
+        result = '{}{} {}'.format(indent, _ParseTree._NODE_TYPE_LIST[self._node_type], self._parameters)
+        for sub_tree in self._sub_trees:
+            result += '\n' + sub_tree.__repr__(indent + ' ')
+        return result
 
     def __and__(self, other):
         assert isinstance(other, _ParseTree)
@@ -91,7 +123,10 @@ class _ParseTree(object):
         elif self._node_type == _ParseTree.LIMIT:
             return islice(sub_iterators[0], self._parameters['max_results'])
         elif self._node_type == _ParseTree.CALL:
-            return rule_book._dispatch(self._parameters['method_name'], self._parameters['args'], return_tuples=False)
+            tuple_iterator = rule_book._dispatch(
+                self._parameters['method_name'],
+                self._parameters['args']) # TODO translate to caller's arguments
+            return ({None: None for arg in self._parameters['args'] if arg.is_var()} for t in tuple_iterator)
         else:
             raise Exception('Invalid node type: {}'.format(self._node_type))
 
