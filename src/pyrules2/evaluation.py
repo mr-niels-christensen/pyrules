@@ -6,15 +6,6 @@ import inspect
 
 LOCAL = object()
 
-'''STATUS: RuleBook._dispatch() has been changed to take the original_method instead of its name,
-but this has not been adapted in _ParseTree. Note that CALL nodes do not have access to the
-original_method.
-
-_ParseTree is now constructed with a full set of free variables,
-and _dispatch translates args into a reasonable environment.
-
-I still need to fix the projection - need to think about how this works for CALL nodes
-'''
 def rule(func):
     """
     Example usage:
@@ -37,13 +28,33 @@ class _VirtualSelf(object):
     A _VirtualSelf is used when parsing a @rule in a RuleBook.
     The _VirtualSelf is passed as the "self" argument, and any call
     to another @rule is transformed into a node in the rule's
-    _ParseTree. The call itself is not perfomed.
+    _ParseTree. The call itself is not performed.
     """
 
     def __getattr__(self, name):
         def virtual_method(virtual_self, *args):
             return _ParseTree(_ParseTree.CALL, method_name=name, args=args)
         return virtual_method
+
+
+def _args_kwargs(func, remove_self=False):
+    """
+    Inspects the given function and returns its args and kwargs wrapped in _Var
+    :param func: Any function
+    :param remove_self: If true, the first argument of func must be 'self' and it will not be returned.
+    :return: A pair of lists. Each element of these lists is a pyrules variable with
+    the name of the corresponding argument of func.
+    """
+    argspec = inspect.getargspec(func)
+    all_args = [var.__getattr__(arg) for arg in argspec[0]]
+    defaults = argspec[3]
+    num_args = len(all_args) - (len(defaults) if defaults is not None else 0)
+    args = all_args[0:num_args]
+    if remove_self:
+        assert args[0] == var.self, '{}: Expected "self" as first in {}. Defaults are {}.'.format(func.func_name, all_args, defaults)
+        args = args[1:]
+    kwargs = all_args[num_args:]
+    return args, kwargs
 
 
 class RuleBook(object):
@@ -63,7 +74,6 @@ class RuleBook(object):
             attribute = getattr(self, attribute_name)
             if hasattr(attribute, 'pyrules'):
                 self._register(attribute)
-        print self._parse_trees
 
     def _register(self, method):
         """
@@ -73,27 +83,32 @@ class RuleBook(object):
         """
         original_method = method.pyrules['original_method']
         # def f(x,y,z=LOCAL) will be given (var.x, var.y, var.z) as arguments
-        args = [var.__getattr__(arg) for arg in inspect.getargspec(original_method)[0][1:]]
+        args, kwargs = _args_kwargs(original_method, remove_self=True)
+        passed_args = args + kwargs
         # Call original method and store the returned _ParseTree
         self._parse_trees[original_method.func_name] = original_method(_VirtualSelf(), *args)
 
     def _dispatch(self, original_method, args):
         '''
         Executes a query to one of this RuleBook's @rule-decorated methods.
-        :param method_name: The name of the method to query, e.g. 'child'
+        :param original_method: The original version of the method to query
         :param args: TODO
         :return: An iterator of tuples TODO
         '''
+        if isinstance(original_method, str):
+            original_method = getattr(self, original_method).pyrules['original_method']
+        print 'Calling {}'.format(original_method.func_name)
         parse_tree = self._parse_trees[original_method.func_name]
-        parse_tree_args = [var.__getattr__(arg) for arg in inspect.getargspec(original_method)[0][1:]]
-        env = {arg : arg for arg in parse_tree_args}
+        parse_tree_args, parse_tree_kwargs = _args_kwargs(original_method, remove_self=True)
+        env = {arg: arg for arg in parse_tree_kwargs}  # These are always just free
         for index, arg in enumerate(args):
-            if not arg.is_var():
-                env[parse_tree_args[index]] = arg
-        dict_iterator = parse_tree.to_dict_iterator(env)
+            env[parse_tree_args[index]] = arg
+        print 'Passing {}'.format(env)
+        dict_iterator = parse_tree.to_dict_iterator(env, self)
 
-        def projection(d): # For each dict, extract variable assignments in order
-            return tuple(d[arg] for arg in args if arg.is_var())
+        def projection(d):  # For each dict, extract variable assignments in order
+            return tuple(d[parse_tree_arg] for parse_tree_arg in parse_tree_args)
+        print 'Return'
         return (projection(d) for d in dict_iterator)
 
 
@@ -136,15 +151,16 @@ class _ParseTree(object):
         assert isinstance(other, _ParseTree)
         return _ParseTree(_ParseTree.OR, self, other)
 
-    def to_dict_iterator(self, rule_book):
+    def to_dict_iterator(self, env, rule_book):
         """
         This is the "code generation" method.
         :return: An iterator of dicts. Each dict maps variables to concrete values.
         """
-        sub_iterators = [s.to_dict_iterator(rule_book) for s in self._sub_trees]
+        sub_iterators = [s.to_dict_iterator(env, rule_book) for s in self._sub_trees]
         if self._node_type == _ParseTree.MATCHES:
             return _dict_iterator_for_matches(self._parameters['tuple_iterator'],
-                                              self._parameters['args'])
+                                              self._parameters['args'],
+                                              env)
         elif self._node_type == _ParseTree.AND:
             return imap(_union, ifilter(_compatible, product(*sub_iterators)))
         elif self._node_type == _ParseTree.OR:
@@ -154,8 +170,8 @@ class _ParseTree(object):
         elif self._node_type == _ParseTree.CALL:
             tuple_iterator = rule_book._dispatch(
                 self._parameters['method_name'],
-                self._parameters['args']) # TODO translate to caller's arguments
-            return ({None: None for arg in self._parameters['args'] if arg.is_var()} for t in tuple_iterator)
+                (env[arg] for arg in self._parameters['args']))
+            return ({arg: t[index] for index, arg in enumerate(self._parameters['args'])} for t in tuple_iterator)
         else:
             raise Exception('Invalid node type: {}'.format(self._node_type))
 
@@ -198,8 +214,8 @@ def matches(tuple_iterator, *args):
         args=args)
 
 
-def _dict_iterator_for_matches(tuple_iterator, args):
-    var_index_dict = _var_index_dict(args)
+def _dict_iterator_for_matches(tuple_iterator, args, env):
+    var_index_dict = _var_index_dict(env[arg] for arg in args)
     # In case of e.g. self.p(var.x, var.x), match variables
     for var, index_list in var_index_dict.iteritems():
         first_index = index_list[0]
@@ -208,8 +224,8 @@ def _dict_iterator_for_matches(tuple_iterator, args):
             tuple_iterator = ifilter(lambda t: t[first_index] == t[other_index], tuple_iterator)
     # Match given constants
     for index, arg in enumerate(args):
-        if not arg.is_var():
-            tuple_iterator = ifilter(lambda t: t[index] == arg, tuple_iterator)
+        if not env[arg].is_var():
+            tuple_iterator = ifilter(lambda t: t[index] == env[arg], tuple_iterator)
 
     def tuple_to_dict(t):
         return {v: t[var_index_dict[v][0]] for v in var_index_dict}

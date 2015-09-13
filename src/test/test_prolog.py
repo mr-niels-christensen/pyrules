@@ -60,10 +60,12 @@ class Test(unittest.TestCase):
             set(tuples),
             set(expected))
 
+    @unittest.skip("firstthingsfirst")
     def test_world(self):
         pairs = set(World().grandchild(var.x, var.z))
         self.assertIn((atom.Abd_Manaf_ibn_Qusai, atom.Umayya_ibn_Abd_Shams), pairs)
 
+    @unittest.skip("firstthingsfirst")
     def test_pattern_matching(self):
         x = var.x
         self.assertEqual(set(Family().aunt(x, x)), set())
