@@ -117,15 +117,19 @@ class Test(unittest.TestCase):
         w = when(a=0, b=1)
         self.assertListEqual([{'a': 0, 'b': 1}], list(w.all_dicts()))
 
-
     def test_or_op(self):
-        pass  # TODO
+        self.assertListEqual([{'a': 0}, {'a': 1}],
+                             list((when(a=0) | when(a=1)).all_dicts()))
 
     def test_and_op(self):
-        pass  # TODO
+        self.assertListEqual([{'a': 0, 'b': 1}],
+                             list((when(a=0) & when(b=1)).all_dicts()))
 
     def test_and_or(self):
-        pass  # TODO
+        e = when(a=0) & (when(b=0) | when(b=1))
+        self.assertListEqual([{'a': 0, 'b': 0},
+                              {'a': 0, 'b': 1}],
+                             list(e.all_dicts()))
 
     def test_dag(self):
         pass  # TODO
