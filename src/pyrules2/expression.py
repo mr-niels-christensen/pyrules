@@ -59,57 +59,6 @@ def when(**kwargs):
     return ConstantExpression(kwargs)
 
 
-class CallExpression(Expression):
-    def __init__(self, rule_name):
-        self.rule_name = rule_name
-
-    def all_dicts(self, rule_book):
-        return rule_book.expression_for_name(self.rule_name).all_dicts(rule_book)
-
-
-class ArgHandlerExpression(Expression):
-    def __init__(self, rule_name, index, concrete_arg, sub_expression):
-        self.rule_name = rule_name
-        self.index = index
-        self.concrete_arg = concrete_arg
-        self.sub_expression = sub_expression
-
-    def all_dicts(self, rule_book):
-        abstract_arg = rule_book.args_for_name(self.rule_name)[self.index]
-        for d in self.sub_expression.all_dicts(rule_book):
-            returned_value = d[abstract_arg]
-            if self.concrete_arg.is_var():
-                yield {self.concrete_arg : returned_value}
-            else:
-                if self.concrete_arg == returned_value:
-                    yield dict()
-
-
-class KwargHandlerExpression(Expression):
-    def __init__(self, abstract_arg, concrete_arg, sub_expression):
-        self.abstract_arg = abstract_arg
-        self.concrete_arg = concrete_arg
-        self.sub_expression = sub_expression
-
-    def all_dicts(self, rule_book):
-        for d in self.sub_expression.all_dicts(rule_book):
-            returned_value = d[self.abstract_arg]
-            if self.concrete_arg.is_var():
-                yield {self.concrete_arg : returned_value}
-            else:
-                if self.concrete_arg == returned_value:
-                    yield dict()
-
-
-def expr_call(rule_name, concrete_args, concrete_kwargs):
-    call = CallExpression(rule_name)
-    arg_handlers = [ArgHandlerExpression(rule_name, index, concrete_arg, call)
-                    for index, concrete_arg in enumerate(concrete_args)]
-    kwarg_handlers = [KwargHandlerExpression(abstract_arg, concrete_arg, call)
-                      for abstract_arg, concrete_arg in concrete_kwargs.iteritems()]
-    return AndExpression(*(arg_handlers + kwarg_handlers))
-
-
 class AggregateExpression(Expression):
     """
     An aggregate Expression, i.e. one that combines subexpressions.
