@@ -149,3 +149,14 @@ class OrExpression(AggregateExpression):
                 pop()
 
 
+class ReferenceExpression(Expression):
+    def __init__(self):
+        self.ref = None
+
+    def set_expression(self, ref):
+        assert isinstance(ref, Expression)
+        self.ref = ref
+
+    def all_dicts(self):
+        assert self.ref is not None
+        return self.ref.all_dicts()

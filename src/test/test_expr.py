@@ -1,5 +1,5 @@
 import unittest
-from pyrules2.expression import ConstantExpression, AndExpression, OrExpression, when
+from pyrules2.expression import ConstantExpression, AndExpression, OrExpression, ReferenceExpression, when
 
 
 class Test(unittest.TestCase):
@@ -28,6 +28,24 @@ class Test(unittest.TestCase):
         c = ConstantExpression({'a': 'b'})
         self.assertListEqual([{'a': 'b'}], list(c.all_dicts()))
         self.assertListEqual([{'a': 'b'}], list(c.all_dicts()))
+
+    def test_ref(self):
+        # Init
+        r = ReferenceExpression()
+        # Ref not set
+        self.assertRaises(Exception, r.all_dicts)
+        # Ref set
+        r.set_expression(ConstantExpression({'a': 0}))
+        self.assertListEqual([{'a': 0}], list(r.all_dicts()))
+        # Ref set again
+        r.set_expression(ConstantExpression({'b': 1}))
+        self.assertListEqual([{'b': 1}], list(r.all_dicts()))
+        # Repeated invocation
+        self.assertListEqual([{'b': 1}], list(r.all_dicts()))
+        # Ref set to non-Expression
+        self.assertRaises(Exception, r.set_expression, dict())
+        # Constructor gets argument
+        self.assertRaises(Exception, ReferenceExpression, ConstantExpression(dict()))
 
     def test_or(self):
         # 0 subexpressions
