@@ -1,5 +1,5 @@
 import unittest
-from pyrules2.expression import ConstantExpression, AndExpression, OrExpression
+from pyrules2.expression import ConstantExpression, AndExpression, OrExpression, when
 
 
 class Test(unittest.TestCase):
@@ -114,7 +114,9 @@ class Test(unittest.TestCase):
         self.assertListEqual([{'a': 'b'}], list(o.all_dicts()))
 
     def test_when(self):
-        pass  # TODO
+        w = when(a=0, b=1)
+        self.assertListEqual([{'a': 0, 'b': 1}], list(w.all_dicts()))
+
 
     def test_or_op(self):
         pass  # TODO
