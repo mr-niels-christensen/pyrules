@@ -47,7 +47,7 @@ class ConstantExpression(Expression):
         yield self.d.copy()
 
     def __repr__(self):
-        return '{}({!r})'.format(self.__class__, self.d)
+        return '{}({!r})'.format(self.__class__.__name__, self.d)
 
 
 def when(**kwargs):
@@ -132,7 +132,7 @@ class AggregateExpression(Expression):
         raise NotImplementedError
 
     def __repr__(self):
-        return '{}{!r}'.format(self.__class__, self.subexpressions)
+        return '{}{!r}'.format(self.__class__.__name__, self.subexpressions)
 
 
 class AndExpression(AggregateExpression):
