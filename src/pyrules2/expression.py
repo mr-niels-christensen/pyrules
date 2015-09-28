@@ -150,13 +150,35 @@ class OrExpression(AggregateExpression):
 
 
 class ReferenceExpression(Expression):
+    """
+    An Expression which refers to another Expression and generates
+    exactly the dicts that the referred Expression does.
+    The reference can be updated many times.
+    """
     def __init__(self):
+        """
+        Sets the internal reference to None.
+        set_expression() must be called before all_dicts() or
+        the latter will fail.
+        """
         self.ref = None
 
     def set_expression(self, ref):
+        """
+        Sets the internal reference.
+        :param ref: The Expression to refer to.
+        :raises: AssertionError if ref is not an Expression.
+        """
         assert isinstance(ref, Expression)
         self.ref = ref
 
     def all_dicts(self):
+        """
+        :return: The dict generator from the referred Expression.
+        :raises AssertionError: if the internal reference is None.
+        """
         assert self.ref is not None
         return self.ref.all_dicts()
+
+    def __repr__(self):
+        return '<{}{!r}>'.format(self.__class__.__name__, self.ref)
