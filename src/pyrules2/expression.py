@@ -5,13 +5,26 @@ __author__ = 'nhc'
 
 
 class Expression(object):
+    """
+    Abstract superclass of all Expressions.
+    Defines operators that work on Expressions.
+    """
     def all_dicts(self):
-        pass
+        """
+        Must be overridden by all subclasses.
+        """
+        raise NotImplementedError
 
     def __and__(self, other):
+        """
+        :returns An AndExpression combining self and other.
+        """
         return AndExpression(self, other)
 
     def __or__(self, other):
+        """
+        :returns An OrExpression combining self and other.
+        """
         return OrExpression(self, other)
 
 
@@ -28,10 +41,21 @@ class ConstantExpression(Expression):
         self.d = d.copy()
 
     def all_dicts(self):
+        """
+        :returns A generator yielding a copy of the stored dict.
+        """
         yield self.d.copy()
+
+    def __repr__(self):
+        return '{}({!r})'.format(self.__class__, self.d)
 
 
 def when(**kwargs):
+    """
+    Syntactic sugar for a ConstantExpression. Example: when(a=0, b=1).
+    :param kwargs: Any dict.
+    :return: A ConstantExpression yielding the given kwargs.
+    """
     return ConstantExpression(kwargs)
 
 
@@ -106,6 +130,9 @@ class AggregateExpression(Expression):
         Override this in subclasses.
         """
         raise NotImplementedError
+
+    def __repr__(self):
+        return '{}{!r}'.format(self.__class__, self.subexpressions)
 
 
 class AndExpression(AggregateExpression):
