@@ -132,10 +132,11 @@ class Test(unittest.TestCase):
                              list(e.all_dicts()))
 
     def test_dag(self):
-        pass  # TODO
-
-
-
+        c = when(a=0)
+        e = c & c & c
+        self.assertListEqual([{'a': 0}], list(e.all_dicts()))
+        e = c | c | c
+        self.assertListEqual([{'a': 0}] * 3, list(e.all_dicts()))
 
 if __name__ == "__main__":
     unittest.main()
