@@ -111,12 +111,12 @@ class AndExpression(Expression):
 
 
 class OrExpression(Expression):
-    def __init__(self, expr0, expr1):
-        self.sub_expressions = (expr0, expr1)
+    def __init__(self, *subexpressions):
+        self.sub_expressions = subexpressions
 
     def all_dicts(self):
-        return OrExpression.round_robin(self.sub_expressions[0].all_dicts(),
-                                        self.sub_expressions[1].all_dicts())
+        iterables = [e.all_dicts() for e in self.sub_expressions]
+        return OrExpression.round_robin(*iterables)
 
     @staticmethod
     def round_robin(*iterables):

@@ -24,6 +24,47 @@ class Test(unittest.TestCase):
         c = ConstantExpression(d)
         d['a'] = 1
         self.assertListEqual([{'a': 0}], list(c.all_dicts()))
+        # Repeated invocations
+        c = ConstantExpression({'a': 'b'})
+        self.assertListEqual([{'a': 'b'}], list(c.all_dicts()))
+        self.assertListEqual([{'a': 'b'}], list(c.all_dicts()))
+
+    def test_or(self):
+        # 0 subexpressions
+        o = OrExpression()
+        self.assertListEqual([], list(o.all_dicts()))
+        # 1 subexpression
+        o = OrExpression(ConstantExpression({'a': 'b'}))
+        self.assertListEqual([{'a': 'b'}], list(o.all_dicts()))
+        # 2 subexpressions
+        o = OrExpression(ConstantExpression({'a': 0}),
+                         ConstantExpression({'b': 1}))
+        r = list(o.all_dicts())
+        self.assertIn({'a': 0}, r)
+        self.assertIn({'b': 1}, r)
+        self.assertEqual(2, len(r))
+        # >2 subexpressions
+        # Same dict twice
+        # dicts with same key but different value
+        # OR subexpression
+        # Argument is not an Expression
+        # Repeated invocations
+
+    def test_or_op(self):
+        pass  # TODO
+
+    def test_and(self):
+        pass  # TODO
+
+    def test_and_op(self):
+        pass  # TODO
+
+    def test_and_or(self):
+        pass  # TODO
+
+    def test_when(self):
+        pass  # TODO
+
 
 
 if __name__ == "__main__":
