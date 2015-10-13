@@ -1,5 +1,5 @@
 import unittest
-from pyrules2.expression import ConstantExpression, AndExpression, OrExpression, ReferenceExpression, when, FilterEqExpression, PickAndRenameExpression
+from pyrules2.expression import ConstantExpression, AndExpression, OrExpression, ReferenceExpression, when, FilterEqExpression, RenameExpression
 
 
 class Test(unittest.TestCase):
@@ -136,6 +136,9 @@ class Test(unittest.TestCase):
         self.assertListEqual([{'a': 0, 'b': 1}], list(w.all_dicts()))
 
     def test_filter_eq(self):
+        # Subexpression not an Expression
+        self.assertRaises(Exception, FilterEqExpression, 'x', 0, None)
+        # Prepare for rest of the test
         r = ReferenceExpression()
         f = FilterEqExpression('x', 0, r)
         # No keys
@@ -167,6 +170,31 @@ class Test(unittest.TestCase):
         self.assertListEqual([{'x': 0}], list(f.all_dicts()))
         r.set_expression(when(x=2) | when(x=1))
         self.assertListEqual([], list(f.all_dicts()))
+
+    def test_rename(self):
+        # Subexpression not an Expression
+        self.assertRaises(Exception, RenameExpression, None)
+        # No keys
+        r = RenameExpression(when(x=0))
+        self.assertListEqual([{}], list(r.all_dicts()))
+        # One key
+        r = RenameExpression(when(x=0), x='y')
+        self.assertListEqual([{'y': 0}], list(r.all_dicts()))
+        # Unknown key
+        r = RenameExpression(when(x=0), y='z')
+        gen = r.all_dicts()
+        self.assertRaises(Exception, list, gen)
+        # Two keys, different values
+        r = RenameExpression(when(x=0, y=1), x='a', y='b')
+        self.assertListEqual([{'a': 0, 'b': 1}], list(r.all_dicts()))
+        # Two keys, same value
+        r = RenameExpression(when(x=0, y=1), x='a', y='a')
+        self.assertListEqual([], list(r.all_dicts()))
+        r = RenameExpression(when(x=0, y=0), x='a', y='a')
+        self.assertListEqual([{'a': 0}], list(r.all_dicts()))
+        # Several dicts
+        r = RenameExpression(when(x=0) | when(x=1), x='a')
+        self.assertListEqual([{'a': 0}, {'a': 1}], list(r.all_dicts()))
 
     def test_or_op(self):
         self.assertListEqual([{'a': 0}, {'a': 1}],

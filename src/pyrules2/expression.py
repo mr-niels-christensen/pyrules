@@ -200,6 +200,7 @@ class FilterEqExpression(Expression):
         """
         self.key = key
         self.expected_value = expected_value
+        assert isinstance(expr, Expression)
         self.expr = expr
 
     def all_dicts(self):
@@ -212,13 +213,19 @@ class FilterEqExpression(Expression):
                 yield d
 
 
-class PickAndRenameExpression(Expression):
-    def __init__(self, key, new_key, expr):
-        self.key = key
-        self.new_key = new_key
+class RenameExpression(Expression):
+    def __init__(self, expr, **old_key_to_new_key):
+        assert isinstance(expr, Expression)
         self.expr = expr
+        self.map = old_key_to_new_key
 
     def all_dicts(self):
         for d in self.expr.all_dicts():
-            yield {self.new_key: d[self.key]}
-
+            if len(self.map) == 0:
+                yield {}
+            else:
+                try:
+                    dicts = [{new_key: d[old_key]}  for old_key, new_key in self.map.iteritems()]
+                    yield AndExpression.union(dicts)
+                except AssertionError:
+                    pass
