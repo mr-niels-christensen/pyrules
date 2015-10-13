@@ -148,23 +148,23 @@ class Test(unittest.TestCase):
         self.assertRaises(Exception, list, gen)
         # Only key and matching
         r.set_expression(when(x=0))
-        self.assertListEqual([{}], list(f.all_dicts()))
+        self.assertListEqual([{'x': 0}], list(f.all_dicts()))
         # Only key and not matching
         r.set_expression(when(x=1))
         self.assertListEqual([], list(f.all_dicts()))
         # More keys, matching
         r.set_expression(when(x=0, y=1))
-        self.assertListEqual([{}], list(f.all_dicts()))
+        self.assertListEqual([{'x': 0, 'y': 1}], list(f.all_dicts()))
         # More keys, not matching
         r.set_expression(when(x=1, y=0))
         self.assertListEqual([], list(f.all_dicts()))
         # Several dicts
         r.set_expression(when(x=0) | when(x=0))
-        self.assertListEqual([{}, {}], list(f.all_dicts()))
+        self.assertListEqual([{'x': 0}] * 2, list(f.all_dicts()))
         r.set_expression(when(x=0) | when(x=1))
-        self.assertListEqual([{}], list(f.all_dicts()))
+        self.assertListEqual([{'x': 0}], list(f.all_dicts()))
         r.set_expression(when(x=1) | when(x=0))
-        self.assertListEqual([{}], list(f.all_dicts()))
+        self.assertListEqual([{'x': 0}], list(f.all_dicts()))
         r.set_expression(when(x=2) | when(x=1))
         self.assertListEqual([], list(f.all_dicts()))
 
