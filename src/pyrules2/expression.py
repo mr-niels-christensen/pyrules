@@ -182,3 +182,27 @@ class ReferenceExpression(Expression):
 
     def __repr__(self):
         return '<{}{!r}>'.format(self.__class__.__name__, self.ref)
+
+
+class FilterEqExpression(Expression):
+    def __init__(self, key, expected_value, expr):
+        self.key = key
+        self.expected_value = expected_value
+        self.expr = expr
+
+    def all_dicts(self):
+        for d in self.expr.all_dicts():
+            if d[self.key] == self.expected_value:
+                yield {}
+
+
+class PickAndRenameExpression(Expression):
+    def __init__(self, key, new_key, expr):
+        self.key = key
+        self.new_key = new_key
+        self.expr = expr
+
+    def all_dicts(self):
+        for d in self.expr.all_dicts():
+            yield {self.new_key: d[self.key]}
+

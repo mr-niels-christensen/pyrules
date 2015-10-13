@@ -1,5 +1,5 @@
 import unittest
-from pyrules2.expression import ConstantExpression, AndExpression, OrExpression, ReferenceExpression, when
+from pyrules2.expression import ConstantExpression, AndExpression, OrExpression, ReferenceExpression, when, FilterEqExpression, PickAndRenameExpression
 
 
 class Test(unittest.TestCase):
@@ -134,6 +134,39 @@ class Test(unittest.TestCase):
     def test_when(self):
         w = when(a=0, b=1)
         self.assertListEqual([{'a': 0, 'b': 1}], list(w.all_dicts()))
+
+    def test_filter_eq(self):
+        r = ReferenceExpression()
+        f = FilterEqExpression('x', 0, r)
+        # No keys
+        r.set_expression(ConstantExpression(dict()))
+        gen = f.all_dicts()
+        self.assertRaises(Exception, list, gen)
+        # Other key
+        r.set_expression(when(y=0))
+        gen = f.all_dicts()
+        self.assertRaises(Exception, list, gen)
+        # Only key and matching
+        r.set_expression(when(x=0))
+        self.assertListEqual([{}], list(f.all_dicts()))
+        # Only key and not matching
+        r.set_expression(when(x=1))
+        self.assertListEqual([], list(f.all_dicts()))
+        # More keys, matching
+        r.set_expression(when(x=0, y=1))
+        self.assertListEqual([{}], list(f.all_dicts()))
+        # More keys, not matching
+        r.set_expression(when(x=1, y=0))
+        self.assertListEqual([], list(f.all_dicts()))
+        # Several dicts
+        r.set_expression(when(x=0) | when(x=0))
+        self.assertListEqual([{}, {}], list(f.all_dicts()))
+        r.set_expression(when(x=0) | when(x=1))
+        self.assertListEqual([{}], list(f.all_dicts()))
+        r.set_expression(when(x=1) | when(x=0))
+        self.assertListEqual([{}], list(f.all_dicts()))
+        r.set_expression(when(x=2) | when(x=1))
+        self.assertListEqual([], list(f.all_dicts()))
 
     def test_or_op(self):
         self.assertListEqual([{'a': 0}, {'a': 1}],
