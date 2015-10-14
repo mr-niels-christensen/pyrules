@@ -254,6 +254,20 @@ class RenameExpression(Expression):
 
 
 def bind(callee_expr, callee_key_to_constant, callee_key_to_caller_key):
+    """
+    Utility for building FilterEqExpression and RenameExpressions
+    to work like a function call.
+    :param callee_expr: Expression for the body of the called function
+    :param callee_key_to_constant: Dict representing bindings to
+    constants. For example, to represent f(x=0), this dict would be
+    {'x': 0}.
+    :param callee_key_to_caller_key: Dict representing bindings to
+    variables in the caller. For example, to represent f(x=y), this
+    dict would be {'x': 'y'}.
+    :return: An Expression on the form
+    RenameExpression -> FilterEqExpression -> ... -> FilterEqExpression -> callee_expr
+    with one RenameExpression and len(callee_key_to_constant) FilterEqExpressions.
+    """
     assert isinstance(callee_expr, Expression)
     assert isinstance(callee_key_to_constant, dict)
     assert isinstance(callee_key_to_caller_key, dict)
