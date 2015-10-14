@@ -1,5 +1,5 @@
 import unittest
-from pyrules2.expression import ConstantExpression, AndExpression, OrExpression, ReferenceExpression, when, FilterEqExpression, RenameExpression
+from pyrules2.expression import ConstantExpression, AndExpression, OrExpression, ReferenceExpression, when, FilterEqExpression, RenameExpression, bind
 
 
 class Test(unittest.TestCase):
@@ -216,6 +216,38 @@ class Test(unittest.TestCase):
         self.assertListEqual([{'a': 0}], list(e.all_dicts()))
         e = c | c | c
         self.assertListEqual([{'a': 0}] * 3, list(e.all_dicts()))
+
+    def test_bind(self):
+        # No bindings
+        b = bind(when(x=0), {}, {})
+        self.assertListEqual([{}], list(b.all_dicts()))
+        # Constant-bindings only
+        b = bind(when(x=0), {'x': 0}, {})
+        self.assertListEqual([{}], list(b.all_dicts()))
+        b = bind(when(x=0), {'x': 1}, {})
+        self.assertListEqual([], list(b.all_dicts()))
+        # Variable-bindings only
+        b = bind(when(x=0), {}, {'x': 'a'})
+        self.assertListEqual([{'a': 0}], list(b.all_dicts()))
+        b = bind(when(x=0, y=1), {}, {'x': 'a', 'y': 'b'})
+        self.assertListEqual([{'a': 0, 'b': 1}], list(b.all_dicts()))
+        b = bind(when(x=0, y=1), {}, {'x': 'a', 'y': 'a'})
+        self.assertListEqual([], list(b.all_dicts()))
+        # Mixed bindings
+        b = bind(when(x=0), {'x': 0}, {'x': 'a'})
+        self.assertListEqual([{'a': 0}], list(b.all_dicts()))
+        # Bad expression
+        self.assertRaises(Exception, bind, None, {}, {})
+        # Bad bindings
+        self.assertRaises(Exception, bind, when(x=0), None, {})
+        self.assertRaises(Exception, bind, when(x=0), {}, None)
+        b = bind(when(x=0), {'a': 0}, {})
+        gen = b.all_dicts()
+        self.assertRaises(Exception, list, gen)
+        b = bind(when(x=0), {}, {'a': 'b'})
+        gen = b.all_dicts()
+        self.assertRaises(Exception, list, gen)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -251,3 +251,13 @@ class RenameExpression(Expression):
                     yield AndExpression.union(dicts)
                 except AssertionError:
                     pass
+
+
+def bind(callee_expr, callee_key_to_constant, callee_key_to_caller_key):
+    assert isinstance(callee_expr, Expression)
+    assert isinstance(callee_key_to_constant, dict)
+    assert isinstance(callee_key_to_caller_key, dict)
+    result = callee_expr
+    for callee_key, constant in callee_key_to_constant.iteritems():
+        result = FilterEqExpression(callee_key, constant, result)
+    return RenameExpression(result, **callee_key_to_caller_key)
