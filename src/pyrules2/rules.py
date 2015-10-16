@@ -1,6 +1,6 @@
 import inspect
 from pyrules2.expression import ReferenceExpression, bind
-
+from pprint import pformat
 
 class VirtualSelf(object):
     pass
@@ -50,12 +50,8 @@ def rewrite(rules):
         reference_expressions[rule_name].set_expression(generated_expression)
     for rule_name, rule_method in rules.items():
         rules[rule_name] = call_builder(rule_method, reference_expressions[rule_name])
-
-    @staticmethod
-    def rules_as_string():
-        from pprint import pformat
-        return pformat({name: r.ref for name, r in reference_expressions.items()}, indent=2, width=40)
-    rules['foo'] = rules_as_string
+    # Store an index of the rules
+    rules['__index__'] = reference_expressions
 
 
 class Meta(type):
@@ -75,6 +71,9 @@ class RuleBook(object):
     The method itself is changed into a call to RuleBook._dispatch()
     """
     __metaclass__ = Meta
+
+    def __str__(self):
+        return pformat({rule_name: ref_expression.ref for rule_name, ref_expression in self.__index__.items()})
 
 
 def rule(func):
