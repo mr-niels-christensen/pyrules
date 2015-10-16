@@ -155,13 +155,17 @@ class ReferenceExpression(Expression):
     exactly the dicts that the referred Expression does.
     The reference can be updated many times.
     """
-    def __init__(self):
+    def __init__(self, name=None):
         """
         Sets the internal reference to None.
         set_expression() must be called before all_dicts() or
         the latter will fail.
         """
         self.ref = None
+        if name is not None:
+            assert isinstance(name, str)
+            assert len(name) > 0
+        self.name = name
 
     def set_expression(self, ref):
         """
@@ -180,8 +184,14 @@ class ReferenceExpression(Expression):
         assert self.ref is not None
         return self.ref.all_dicts()
 
+    def set_name(self, name):
+        self.name = name
+
     def __repr__(self):
-        return '<{}{!r}>'.format(self.__class__.__name__, self.ref)
+        if self.name:
+            return '<{} name={!r}>'.format(self.__class__.__name__, self.name)
+        else:
+            return '<{} ref={!r}>'.format(self.__class__.__name__, self.ref)
 
 
 class FilterEqExpression(Expression):
@@ -211,6 +221,12 @@ class FilterEqExpression(Expression):
         for d in self.expr.all_dicts():
             if d[self.key] == self.expected_value:
                 yield d
+
+    def __repr__(self):
+        return '{}({!r},{!r},{!r})'.format(self.__class__.__name__,
+                                           self.key,
+                                           self.expected_value,
+                                           self.expr)
 
 
 class RenameExpression(Expression):
@@ -251,6 +267,12 @@ class RenameExpression(Expression):
                     yield AndExpression.union(dicts)
                 except AssertionError:
                     pass
+
+    def __repr__(self):
+        return '{}({!r},{!r})'.format(self.__class__.__name__,
+                                      self.expr,
+                                      self.map)
+
 
 
 def bind(callee_expr, callee_key_to_constant, callee_key_to_caller_key):

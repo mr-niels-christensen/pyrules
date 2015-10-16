@@ -1,4 +1,3 @@
-from functools import wraps
 import inspect
 from pyrules2.expression import ReferenceExpression, bind
 
@@ -19,8 +18,7 @@ class Var(object):
 def call_builder(rule_method, reference_expression):
     assert isinstance(reference_expression, ReferenceExpression)
 
-    def virtual_method(*args): # Note: No self parameter is passed
-        print 'Virtual method for {} called with args={}'.format(rule_method, args)
+    def virtual_method(*args):  # Note: No self parameter will be passed
         call_args = inspect.getcallargs(rule_method, None, *args)
         assert call_args['self'] is None
         del call_args['self']
@@ -40,7 +38,7 @@ def call_builder(rule_method, reference_expression):
 
 
 def rewrite(rules):
-    reference_expressions = {rule_name: ReferenceExpression() for rule_name in rules}
+    reference_expressions = {rule_name: ReferenceExpression(rule_name) for rule_name in rules}
     vs = VirtualSelf()
     for rule_name, rule_method in rules.items():
         setattr(vs, rule_name, call_builder(rule_method, reference_expressions[rule_name]))
@@ -53,13 +51,19 @@ def rewrite(rules):
     for rule_name, rule_method in rules.items():
         rules[rule_name] = call_builder(rule_method, reference_expressions[rule_name])
 
+    @staticmethod
+    def rules_as_string():
+        from pprint import pformat
+        return pformat({name: r.ref for name, r in reference_expressions.items()}, indent=2, width=40)
+    rules['foo'] = rules_as_string
+
 
 class Meta(type):
-    def __new__(meta, name, bases, class_dict):
+    def __new__(mcs, name, bases, class_dict):
         rules = {key: value for key, value in class_dict.items() if hasattr(value, 'pyrules')}
         rewrite(rules)
         class_dict.update(rules)
-        cls = type.__new__(meta, name, bases, class_dict)
+        cls = type.__new__(mcs, name, bases, class_dict)
         return cls
 
 

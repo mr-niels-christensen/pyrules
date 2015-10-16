@@ -1,6 +1,6 @@
 import unittest
 from pyrules2 import when, rule, RuleBook
-from itertools import product
+from itertools import product, islice
 
 '''Example: Family relations
 
@@ -35,9 +35,12 @@ class DanishRoyalFamily(RuleBook):
 
 
 class Test(unittest.TestCase):
-    @unittest.skip("firstthingsfirst")
+    def test_cls(self):
+        print DanishRoyalFamily.foo()
+
+    @unittest.skip('first things first')
     def test_family(self):
-        dicts = DanishRoyalFamily().aunt(None, None).all_dicts()
+        dicts = islice(DanishRoyalFamily().aunt(None, None).all_dicts(), 100)
         expected_pairs = product([JOE, MARIE], [CHRIS, VINCE, ISA, JOSIE])
         self.assertEqual(
             set((d['aunt'], d['niece']) for d in dicts),
