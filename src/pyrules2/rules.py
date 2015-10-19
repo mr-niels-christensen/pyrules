@@ -64,7 +64,7 @@ class Meta(type):
         return cls
 
     def __str__(self):
-        return pformat({rule_name: ref_expression.ref for rule_name, ref_expression in self.__index__.items()})
+        return '\n'.join('{}:\n{}'.format(rule_name, reference_expression.ref) for rule_name, reference_expression in self.__index__.items())
 
 
 class RuleBook(object):

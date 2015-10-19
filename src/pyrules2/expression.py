@@ -49,6 +49,9 @@ class ConstantExpression(Expression):
     def __repr__(self):
         return '{}({!r})'.format(self.__class__.__name__, self.d)
 
+    def __str__(self, indent=''):
+        return '{}{}({!r})'.format(indent, self.__class__.__name__, self.d)
+
 
 def when(**kwargs):
     """
@@ -82,6 +85,10 @@ class AggregateExpression(Expression):
 
     def __repr__(self):
         return '{}{!r}'.format(self.__class__.__name__, self.subexpressions)
+
+    def __str__(self, indent=''):
+        return '{}{}\n'.format(indent, self.__class__.__name__) \
+               + '\n'.join([e.__str__(indent=indent + '  ') for e in self.subexpressions])
 
 
 class AndExpression(AggregateExpression):
@@ -193,6 +200,12 @@ class ReferenceExpression(Expression):
         else:
             return '<{} ref={!r}>'.format(self.__class__.__name__, self.ref)
 
+    def __str__(self, indent=''):
+        if self.name:
+            return '{}<{} name={!r}>'.format(indent, self.__class__.__name__, self.name)
+        else:
+            return '{}<{}>\n{}'.format(indent, self.__class__.__name__, self.ref.__str__(indent=indent+'  '))
+
 
 class FilterEqExpression(Expression):
     """
@@ -227,6 +240,10 @@ class FilterEqExpression(Expression):
                                            self.key,
                                            self.expected_value,
                                            self.expr)
+
+    def __str__(self, indent=''):
+        return '{}<{} {!r}=={}>'.format(indent, self.__class__.__name__, self.name, self.expected_value) \
+               + '\n'.format(self.expr.__str__(indent=indent+'  '))
 
 
 class RenameExpression(Expression):
@@ -273,6 +290,9 @@ class RenameExpression(Expression):
                                       self.expr,
                                       self.map)
 
+    def __str__(self, indent=''):
+        return '{}<{} {!r}>'.format(indent, self.__class__.__name__, self.map) \
+               + '\n{}'.format(self.expr.__str__(indent=indent+'  '))
 
 
 def bind(callee_expr, callee_key_to_constant, callee_key_to_caller_key):
