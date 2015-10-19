@@ -2,6 +2,7 @@ import inspect
 from pyrules2.expression import ReferenceExpression, bind
 from pprint import pformat
 
+
 class VirtualSelf(object):
     pass
 
@@ -62,6 +63,9 @@ class Meta(type):
         cls = type.__new__(mcs, name, bases, class_dict)
         return cls
 
+    def __str__(self):
+        return pformat({rule_name: ref_expression.ref for rule_name, ref_expression in self.__index__.items()})
+
 
 class RuleBook(object):
     """
@@ -71,9 +75,6 @@ class RuleBook(object):
     The method itself is changed into a call to RuleBook._dispatch()
     """
     __metaclass__ = Meta
-
-    def __str__(self):
-        return pformat({rule_name: ref_expression.ref for rule_name, ref_expression in self.__index__.items()})
 
 
 def rule(func):

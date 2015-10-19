@@ -36,7 +36,7 @@ class DanishRoyalFamily(RuleBook):
 
 class Test(unittest.TestCase):
     def test_cls(self):
-        print DanishRoyalFamily()
+        print DanishRoyalFamily
 
     @unittest.skip('first things first')
     def test_family(self):
