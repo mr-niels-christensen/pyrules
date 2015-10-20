@@ -30,7 +30,7 @@ class DanishRoyalFamily(RuleBook):
     @rule
     def aunt(self, aunt, niece, x=None, y=None):
         return (self.children(x, niece) &
-               (self.sibling(aunt, x) |
+                ((self.sibling(aunt, x) & when(y=None)) |  # TODO: Allow unbound y
                 (self.spouse(aunt, y) & self.sibling(y, x))))
 
 
@@ -52,9 +52,15 @@ class Test(unittest.TestCase):
             set((d['x'], d['y']) for d in dicts),
             set(expected_pairs))
 
+    def test_sibling(self):
+        dicts = islice(DanishRoyalFamily().sibling(None, None).all_dicts(), 10)
+        expected_pairs = [(JOE, FRED), (FRED, JOE)]
+        self.assertSetEqual(
+            set((d['x'], d['y']) for d in dicts),
+            set(expected_pairs))
+
     def test_aunt(self):
         dicts = list(islice(DanishRoyalFamily().aunt(None, None).all_dicts(), 10))
-        print dicts
         expected_pairs = product((JOE, MARIE), (CHRIS, ISA, VINCE, JOSIE))
         self.assertSetEqual(
             set((d['aunt'], d['niece']) for d in dicts),
