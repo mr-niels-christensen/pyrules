@@ -52,5 +52,13 @@ class Test(unittest.TestCase):
             set((d['x'], d['y']) for d in dicts),
             set(expected_pairs))
 
+    def test_aunt(self):
+        dicts = list(islice(DanishRoyalFamily().aunt(None, None).all_dicts(), 10))
+        print dicts
+        expected_pairs = product((JOE, MARIE), (CHRIS, ISA, VINCE, JOSIE))
+        self.assertSetEqual(
+            set((d['aunt'], d['niece']) for d in dicts),
+            set(expected_pairs))
+
 if __name__ == "__main__":
     unittest.main()
