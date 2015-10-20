@@ -38,11 +38,18 @@ class Test(unittest.TestCase):
     def test_cls(self):
         print DanishRoyalFamily
 
+    def test_children(self):
+        dicts = DanishRoyalFamily().children(None, None).all_dicts()
+        expected_pairs = product([FRED, MARY], [CHRIS, VINCE, ISA, JOSIE])
+        self.assertSetEqual(
+            set((d['parent'], d['child']) for d in dicts),
+            set(expected_pairs))
+
     @unittest.skip('first things first')
     def test_family(self):
         dicts = islice(DanishRoyalFamily().aunt(None, None).all_dicts(), 100)
         expected_pairs = product([JOE, MARIE], [CHRIS, VINCE, ISA, JOSIE])
-        self.assertEqual(
+        self.assertSetEqual(
             set((d['aunt'], d['niece']) for d in dicts),
             set(expected_pairs))
 

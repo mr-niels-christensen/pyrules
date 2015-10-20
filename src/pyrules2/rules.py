@@ -16,12 +16,27 @@ class Var(object):
         return 'Var({})'.format(self.variable_name)
 
 
-def call_builder(rule_method, reference_expression):
+def call_builder(rule_method, reference_expression, expect_self_arg=True):
+    """
+    Constructs a callable to replace the given method.
+    The callable will generate all dicts for the given expression,
+    renamed and filtered using the pyrules.bind() function.
+    TODO: Turn this into a callable object to make it more readable
+    :param rule_method: A @rule method from a RuleBook
+    :param reference_expression: The ReferenceExpression that will be used
+    to represent the body of the rule_method
+    :param expect_self_arg: If true, the returned method will expect a
+    "self" argument (which will be ignored). If not, "self" cannot be provided.
+    :return: The constructed method.
+    """
     assert isinstance(reference_expression, ReferenceExpression)
 
-    def virtual_method(*args):  # Note: No self parameter will be passed
-        call_args = inspect.getcallargs(rule_method, None, *args)
-        assert call_args['self'] is None
+    def virtual_method(*args):
+        if expect_self_arg:
+            call_args = inspect.getcallargs(rule_method, *args)
+        else:
+            call_args = inspect.getcallargs(rule_method, None, *args)
+            assert call_args['self'] is None
         del call_args['self']
         const_bindings = {}
         var_bindings = {}
@@ -42,7 +57,7 @@ def rewrite(rules):
     reference_expressions = {rule_name: ReferenceExpression(rule_name) for rule_name in rules}
     vs = VirtualSelf()
     for rule_name, rule_method in rules.items():
-        setattr(vs, rule_name, call_builder(rule_method, reference_expressions[rule_name]))
+        setattr(vs, rule_name, call_builder(rule_method, reference_expressions[rule_name], expect_self_arg=False))
     for rule_name, rule_method in rules.items():
         arg_names = inspect.getargspec(rule_method).args
         assert arg_names[0] == 'self'
