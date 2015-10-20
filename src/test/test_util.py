@@ -1,6 +1,6 @@
 import unittest
 from pyrules2.util import lazy_product
-from itertools import product, count, repeat, islice
+from itertools import product, count, islice
 
 
 class Test(unittest.TestCase):
