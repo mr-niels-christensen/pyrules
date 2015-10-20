@@ -21,7 +21,6 @@ def call_builder(rule_method, reference_expression, expect_self_arg=True):
     Constructs a callable to replace the given method.
     The callable will generate all dicts for the given expression,
     renamed and filtered using the pyrules.bind() function.
-    TODO: Turn this into a callable object to make it more readable
     :param rule_method: A @rule method from a RuleBook
     :param reference_expression: The ReferenceExpression that will be used
     to represent the body of the rule_method
@@ -29,6 +28,7 @@ def call_builder(rule_method, reference_expression, expect_self_arg=True):
     "self" argument (which will be ignored). If not, "self" cannot be provided.
     :return: The constructed method.
     """
+    # TODO: Turn this into a callable object to make it more readable
     assert isinstance(reference_expression, ReferenceExpression)
 
     def virtual_method(*args):
