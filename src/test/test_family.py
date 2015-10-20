@@ -45,12 +45,11 @@ class Test(unittest.TestCase):
             set((d['parent'], d['child']) for d in dicts),
             set(expected_pairs))
 
-    @unittest.skip('first things first')
-    def test_family(self):
-        dicts = islice(DanishRoyalFamily().aunt(None, None).all_dicts(), 100)
-        expected_pairs = product([JOE, MARIE], [CHRIS, VINCE, ISA, JOSIE])
+    def test_spouse(self):
+        dicts = islice(DanishRoyalFamily().spouse(None, None).all_dicts(), 10)
+        expected_pairs = [(JOE, MARIE), (MARIE, JOE), (MARY, FRED), (FRED, MARY)]
         self.assertSetEqual(
-            set((d['aunt'], d['niece']) for d in dicts),
+            set((d['x'], d['y']) for d in dicts),
             set(expected_pairs))
 
 if __name__ == "__main__":
