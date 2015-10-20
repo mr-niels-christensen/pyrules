@@ -6,6 +6,7 @@ from prolog_like_terms import _Atom
 from evaluation import matches
 from functools import wraps
 
+#  TODO: Consider a syntax like return DBpedia.children(x, y) & DBpedia.children(y, z)
 
 def wikipedia(func):
     """
