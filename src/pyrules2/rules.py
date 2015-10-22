@@ -1,6 +1,5 @@
 import inspect
 from pyrules2.expression import ReferenceExpression, bind
-from pprint import pformat
 
 
 class VirtualSelf(object):
@@ -16,27 +15,24 @@ class Var(object):
         return 'Var({})'.format(self.variable_name)
 
 
-def call_builder(rule_method, reference_expression, expect_self_arg=True):
-    """
-    Constructs a callable to replace the given method.
-    The callable will generate all dicts for the given expression,
-    renamed and filtered using the pyrules.bind() function.
-    :param rule_method: A @rule method from a RuleBook
-    :param reference_expression: The ReferenceExpression that will be used
-    to represent the body of the rule_method
-    :param expect_self_arg: If true, the returned method will expect a
-    "self" argument (which will be ignored). If not, "self" cannot be provided.
-    :return: The constructed method.
-    """
-    # TODO: Turn this into a callable object to make it more readable
-    assert isinstance(reference_expression, ReferenceExpression)
+class ExpressionMethod(object):
+    def __init__(self, rule_method, reference_expression):
+        """
+        Constructs a callable to replace the given method.
+        The callable will generate all dicts for the given expression,
+        renamed and filtered using the pyrules.bind() function.
+        :param rule_method: A @rule method from a RuleBook
+        :param reference_expression: The ReferenceExpression that will be used
+        to represent the body of the rule_method
+        :return: The constructed method.
+        """
+        self.rule_method = rule_method
+        assert isinstance(reference_expression, ReferenceExpression)
+        self.reference_expression = reference_expression
 
-    def virtual_method(*args):
-        if expect_self_arg:
-            call_args = inspect.getcallargs(rule_method, *args)
-        else:
-            call_args = inspect.getcallargs(rule_method, None, *args)
-            assert call_args['self'] is None
+    def __call__(self, *args):
+        call_args = inspect.getcallargs(self.rule_method, None, *args)
+        assert call_args['self'] is None
         del call_args['self']
         const_bindings = {}
         var_bindings = {}
@@ -47,17 +43,21 @@ def call_builder(rule_method, reference_expression, expect_self_arg=True):
                 var_bindings[arg_name] = arg_name
             else:
                 const_bindings[arg_name] = arg_value
-        return bind(callee_expr=reference_expression,
+        return bind(callee_expr=self.reference_expression,
                     callee_key_to_constant=const_bindings,
                     callee_key_to_caller_key=var_bindings)
-    return virtual_method
+
+    def __repr__(self):
+        return '{}({!r},{!r})'.format(self.__class__.__name__,
+                                      self.rule_method,
+                                      self.reference_expression)
 
 
 def rewrite(rules):
     reference_expressions = {rule_name: ReferenceExpression(rule_name) for rule_name in rules}
     vs = VirtualSelf()
     for rule_name, rule_method in rules.items():
-        setattr(vs, rule_name, call_builder(rule_method, reference_expressions[rule_name], expect_self_arg=False))
+        setattr(vs, rule_name, ExpressionMethod(rule_method, reference_expressions[rule_name]))
     for rule_name, rule_method in rules.items():
         arg_names = inspect.getargspec(rule_method).args
         assert arg_names[0] == 'self'
@@ -65,7 +65,7 @@ def rewrite(rules):
         generated_expression = rule_method(vs, *vars_for_non_self_args)
         reference_expressions[rule_name].set_expression(generated_expression)
     for rule_name, rule_method in rules.items():
-        rules[rule_name] = call_builder(rule_method, reference_expressions[rule_name])
+        rules[rule_name] = ExpressionMethod(rule_method, reference_expressions[rule_name])
     # Store an index of the rules
     rules['__index__'] = reference_expressions
 
