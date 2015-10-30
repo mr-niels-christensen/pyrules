@@ -1,7 +1,7 @@
 import unittest
 from pyrules2 import when, rule, RuleBook
 from pyrules2.rules import Var
-from pyrules2.expression import RenameExpression
+from pyrules2.expression import expand
 from itertools import product
 from collections import namedtuple
 
@@ -59,9 +59,6 @@ def walk(state):
             if not new_pos == state.monkey_pos:
                 yield State(new_pos, 'onfloor', state.box_pos, state.has)
 
-def expand(fs, **kwargs):
-    raise NotImplementedError('TODO')
-
 
 class MonkeyBanana(RuleBook):
     #canget(Statel) :- move(Statel, Move, State2), canget(State2).
@@ -85,11 +82,6 @@ class MonkeyBanana(RuleBook):
 class Test(unittest.TestCase):
     def test_cls(self):
         print MonkeyBanana
-
-    def test_types(self):
-        print list(MonkeyBanana().pos(None).all_dicts())
-        print list(MonkeyBanana().level(None).all_dicts())
-        print list(MonkeyBanana().bool(None).all_dicts())
 
 
 if __name__ == "__main__":

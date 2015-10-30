@@ -233,7 +233,7 @@ class FilterEqExpression(Expression):
 
 class RenameExpression(Expression):
     """
-    An Expression the generates at most one dict per dict generated
+    An Expression that generates at most one dict per dict generated
     by its subexpression.
     For example, RenameExpression(when(x=0), x='a') generates
       {'a': 0}
@@ -302,3 +302,49 @@ def bind(callee_expr, callee_key_to_constant, callee_key_to_caller_key):
     for callee_key, constant in callee_key_to_constant.iteritems():
         result = FilterEqExpression(callee_key, constant, result)
     return RenameExpression(result, **callee_key_to_caller_key)
+
+
+class ApplyGeneratorExpression(Expression):
+    """
+    An Expression TODO
+    """
+    def __init__(self, expr, generator_function, key):
+        """
+        :param expr: Subexpression, e.g. when(x=0)
+        :param generator_function: TODO
+        :param key: TODO
+        """
+        assert isinstance(expr, Expression)
+        self.expr = expr
+        self.generator_function = generator_function
+        self.key = key
+
+    def all_dicts(self):
+        """
+        :return: Yields TODO
+        """
+        for d in self.expr.all_dicts():
+            for generated_value in self.generator_function(d[self.key]):
+                yield {self.key: generated_value}
+
+    def __repr__(self):
+        return '<{} {!r}({!r}) {!r}>'.format(self.__class__.__name__,
+                                             self.generator_function.func_name,
+                                             self.key,
+                                             self.expr)
+
+    def __str__(self, indent=''):
+        return '{} {} {!r}({!r})'.format(indent,
+                                         self.__class__.__name__,
+                                         self.generator_function.func_name,
+                                         self.key) \
+               + '\n{}'.format(self.expr.__str__(indent=indent+'  '))
+
+
+def expand(fs, **kwargs):
+    r = ReferenceExpression('test')
+    assert len(kwargs) == 1
+    k = kwargs.keys().pop()
+    l = [ApplyGeneratorExpression(r, f, k) for f in fs]
+    r.set_expression(OrExpression(ConstantExpression(kwargs), *l))
+    return r
