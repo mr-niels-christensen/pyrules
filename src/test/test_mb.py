@@ -38,34 +38,26 @@ INITIAL = State('atdoor', 'onfloor', 'atwindow', False)
 
 
 def climb(state):
-    print 'climb?'
     if state.monkey_level == 'onfloor' and state.monkey_pos == state.box_pos:
-        print 'climb!'
         yield State(state.monkey_pos, 'onbox', state.monkey_pos, state.has)
 
 
 def grasp(state):
-    print 'grasp?'
     if state == State('middle', 'onbox', 'middle', False):
-        print 'grasp!'
         yield State('middle', 'onbox', 'middle', True)
 
 
 def push(state):
-    print 'push?'
     if state.monkey_level == 'onfloor' and state.monkey_pos == state.box_pos:
         for new_pos in POSITIONS:
             if not new_pos == state.monkey_pos:
-                print 'push!'
                 yield State(new_pos, 'onfloor', new_pos, state.has)
 
 
 def walk(state):
-    print 'walk?'
     if state.monkey_level == 'onfloor':
         for new_pos in POSITIONS:
             if not new_pos == state.monkey_pos:
-                print 'walk!'
                 yield State(new_pos, 'onfloor', state.box_pos, state.has)
 
 
@@ -76,12 +68,6 @@ class MonkeyBanana(RuleBook):
     #move(state(P, onfloor, P, H), climb, state(P, onbox, P, H)).
     #move(state(Pl, onfloor, Pl, H), push(Pl, P2), state(P2, onfloor, P2, H)).
     #move(state(Pl, onfloor, B, H), walk(Pl, P2), state(P2, onfloor, B, H)).
-
-    @rule
-    def can_get(self, state):
-        #TODO: Don't require 'middle' and 'onbox'
-        return when(state=State('middle', 'onbox', 'middle', True))\
-               & self.can_go(state)
 
     @rule
     def can_go(self, state):
@@ -96,7 +82,9 @@ class Test(unittest.TestCase):
 
     def test_can_go(self):
         for s in islice(MonkeyBanana().can_go(None).all_dicts(), 100):
-            print s
+            if s['state'].has:
+                return  # Success!
+        self.fail('No state with a happy monkey')
 
 
 if __name__ == "__main__":
