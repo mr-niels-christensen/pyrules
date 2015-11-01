@@ -69,19 +69,25 @@ class MonkeyBanana(RuleBook):
     #move(state(Pl, onfloor, B, H), walk(Pl, P2), state(P2, onfloor, B, H)).
 
     @rule
-    def can_get(self, state, via_state=None):
+    def can_get(self, state):
         #TODO: Don't require 'middle' and 'onbox'
         return when(state=State('middle', 'onbox', 'middle', True))\
                & self.can_go(state)
 
     @rule
     def can_go(self, state):
-        return expand([climb, walk, push, grasp], state=State('atdoor', 'onfloor', 'atwindow', False))
+        moves = when(move=climb) | when(move=walk) | when(move=push) | when(move=grasp)
+        return when(state=State('atdoor', 'onfloor', 'atwindow', False))\
+               | expand(self.can_go(state), moves)
 
 
 class Test(unittest.TestCase):
     def test_cls(self):
         print MonkeyBanana
+
+    def test_can_go(self):
+        for s in MonkeyBanana().can_go(None).all_dicts():
+            print s
 
 
 if __name__ == "__main__":

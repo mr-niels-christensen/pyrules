@@ -308,43 +308,41 @@ class ApplyGeneratorExpression(Expression):
     """
     An Expression TODO
     """
-    def __init__(self, expr, generator_function, key):
+    def __init__(self, input_expr, move_expr):
         """
         :param expr: Subexpression, e.g. when(x=0)
         :param generator_function: TODO
-        :param key: TODO
         """
-        assert isinstance(expr, Expression)
-        self.expr = expr
-        self.generator_function = generator_function
-        self.key = key
+        assert isinstance(input_expr, Expression)
+        self.input_expr = input_expr
+        assert isinstance(move_expr, Expression)
+        self.move_expr = move_expr
 
     def all_dicts(self):
         """
         :return: Yields TODO
         """
-        for d in self.expr.all_dicts():
-            for generated_value in self.generator_function(d[self.key]):
-                yield {self.key: generated_value}
+        for input_dict, move_dict in lazy_product(self.input_expr.all_dicts(),
+                                                  self.move_expr.all_dicts()):
+            assert len(input_dict) == 1  # TODO: Allow more inputs
+            key = input_dict.keys().pop()
+            assert len(move_dict) == 1
+            assert 'move' in move_dict
+            generator_function = move_dict['move']
+            for generated_value in generator_function(**input_dict):
+                yield {key: generated_value}
 
     def __repr__(self):
-        return '<{} {!r}({!r}) {!r}>'.format(self.__class__.__name__,
-                                             self.generator_function.func_name,
-                                             self.key,
-                                             self.expr)
+        return '{}({!r}, {!r})'.format(self.__class__.__name__,
+                                       self.input_expr,
+                                       self.move_expr)
 
     def __str__(self, indent=''):
-        return '{} {} {!r}({!r})'.format(indent,
-                                         self.__class__.__name__,
-                                         self.generator_function.func_name,
-                                         self.key) \
-               + '\n{}'.format(self.expr.__str__(indent=indent+'  '))
+        return '{}{}'.format(indent,
+                             self.__class__.__name__) \
+               + '\n{}input:\n{}'.format(indent, self.input_expr.__str__(indent=indent+'  ')) \
+               + '\n{}move:\n{}'.format(indent, self.move_expr.__str__(indent=indent+'  '))
 
 
-def expand(fs, **kwargs):
-    r = ReferenceExpression('test')
-    assert len(kwargs) == 1
-    k = kwargs.keys().pop()
-    l = [ApplyGeneratorExpression(r, f, k) for f in fs]
-    r.set_expression(OrExpression(ConstantExpression(kwargs), *l))
-    return r
+def expand(input_expr, move_expr):
+    return ApplyGeneratorExpression(input_expr, move_expr)
