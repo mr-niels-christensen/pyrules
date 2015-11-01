@@ -1,8 +1,7 @@
 import unittest
 from pyrules2 import when, rule, RuleBook
-from pyrules2.rules import Var
 from pyrules2.expression import expand
-from itertools import product
+from itertools import islice
 from collections import namedtuple
 
 '''This pyrules example goes out to the Prolog enthusiasts.
@@ -35,9 +34,13 @@ HAS_HASNOT = ['has', 'hasnot']
 
 State = namedtuple('State', ['monkey_pos', 'monkey_level', 'box_pos', 'has'])
 
+INITIAL = State('atdoor', 'onfloor', 'atwindow', False)
+
 
 def climb(state):
+    print 'climb?'
     if state.monkey_level == 'onfloor' and state.monkey_pos == state.box_pos:
+        print 'climb!'
         yield State(state.monkey_pos, 'onbox', state.monkey_pos, state.has)
 
 
@@ -76,9 +79,9 @@ class MonkeyBanana(RuleBook):
 
     @rule
     def can_go(self, state):
-        moves = when(move=climb) | when(move=walk) | when(move=push) | when(move=grasp)
-        return when(state=State('atdoor', 'onfloor', 'atwindow', False))\
-               | expand(self.can_go(state), moves)
+        moves = when(move=walk) | when(move=climb) | when(move=push) | when(move=grasp)
+        return when(state=INITIAL)\
+            | expand(self.can_go(state), moves)
 
 
 class Test(unittest.TestCase):
@@ -86,7 +89,7 @@ class Test(unittest.TestCase):
         print MonkeyBanana
 
     def test_can_go(self):
-        for s in MonkeyBanana().can_go(None).all_dicts():
+        for s in islice(MonkeyBanana().can_go(None).all_dicts(), 100):
             print s
 
 
