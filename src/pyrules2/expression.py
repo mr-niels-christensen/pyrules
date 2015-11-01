@@ -25,6 +25,14 @@ class Expression(object):
         """
         :returns An OrExpression combining self and other.
         """
+        if isinstance(self, OrExpression): # TODO: Move to AggregateExpression and document
+            assert isinstance(other, Expression)
+            self.subexpressions = list(self.subexpressions) + [other]
+            return self
+        if isinstance(other, OrExpression):
+            assert isinstance(self, Expression)
+            other.subexpressions = list(other.subexpressions) + [self]
+            return other
         return OrExpression(self, other)
 
 

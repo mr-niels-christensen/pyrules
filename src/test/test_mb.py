@@ -45,21 +45,27 @@ def climb(state):
 
 
 def grasp(state):
+    print 'grasp?'
     if state == State('middle', 'onbox', 'middle', False):
+        print 'grasp!'
         yield State('middle', 'onbox', 'middle', True)
 
 
 def push(state):
+    print 'push?'
     if state.monkey_level == 'onfloor' and state.monkey_pos == state.box_pos:
         for new_pos in POSITIONS:
             if not new_pos == state.monkey_pos:
+                print 'push!'
                 yield State(new_pos, 'onfloor', new_pos, state.has)
 
 
 def walk(state):
+    print 'walk?'
     if state.monkey_level == 'onfloor':
         for new_pos in POSITIONS:
             if not new_pos == state.monkey_pos:
+                print 'walk!'
                 yield State(new_pos, 'onfloor', state.box_pos, state.has)
 
 
