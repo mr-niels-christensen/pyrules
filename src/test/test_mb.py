@@ -27,7 +27,6 @@ HAS_HASNOT = ['has', 'hasnot']
        ('state',  monkey_pos, monkey_level, box_pos, has_hasnot)
    and a move is 'grasp', 'climb', ('walk', pos1, pos2) or ('push', pos1, pos2).
 
-    TODO
    I.e. starting from the door, our monkey can get its banana.
 '''
 
@@ -36,42 +35,41 @@ State = namedtuple('State', ['monkey_pos', 'monkey_level', 'box_pos', 'has'])
 INITIAL = State('atdoor', 'onfloor', 'atwindow', False)
 
 
-def climb(state):
-    if state.monkey_level == 'onfloor' and state.monkey_pos == state.box_pos:
-        yield State(state.monkey_pos, 'onbox', state.monkey_pos, state.has)
-
-
-def grasp(state):
-    if state == State('middle', 'onbox', 'middle', False):
-        yield State('middle', 'onbox', 'middle', True)
-
-
-def push(state):
-    if state.monkey_level == 'onfloor' and state.monkey_pos == state.box_pos:
-        for new_pos in POSITIONS:
-            if not new_pos == state.monkey_pos:
-                yield State(new_pos, 'onfloor', new_pos, state.has)
-
-
-def walk(state):
-    if state.monkey_level == 'onfloor':
-        for new_pos in POSITIONS:
-            if not new_pos == state.monkey_pos:
-                yield State(new_pos, 'onfloor', state.box_pos, state.has)
-
-
 class MonkeyBanana(RuleBook):
-    #canget(Statel) :- move(Statel, Move, State2), canget(State2).
-    #canget(state(-, -, -, has)).
-    #move(state( middle, onbox, middle, hasnot), grasp, state( middle, onbox, middle, has)).
-    #move(state(P, onfloor, P, H), climb, state(P, onbox, P, H)).
-    #move(state(Pl, onfloor, Pl, H), push(Pl, P2), state(P2, onfloor, P2, H)).
-    #move(state(Pl, onfloor, B, H), walk(Pl, P2), state(P2, onfloor, B, H)).
+    @staticmethod
+    def climb(state):
+        # move(state(P, onfloor, P, H), climb, state(P, onbox, P, H)).
+        if state.monkey_level == 'onfloor' and state.monkey_pos == state.box_pos:
+            yield State(state.monkey_pos, 'onbox', state.monkey_pos, state.has)
+
+    @staticmethod
+    def grasp(state):
+        # move(state( middle, onbox, middle, hasnot), grasp, state( middle, onbox, middle, has)).
+        if state == State('middle', 'onbox', 'middle', False):
+            yield State('middle', 'onbox', 'middle', True)
+
+    @staticmethod
+    def push(state):
+        # move(state(Pl, onfloor, Pl, H), push(Pl, P2), state(P2, onfloor, P2, H)).
+        if state.monkey_level == 'onfloor' and state.monkey_pos == state.box_pos:
+            for new_pos in POSITIONS:
+                if not new_pos == state.monkey_pos:
+                    yield State(new_pos, 'onfloor', new_pos, state.has)
+
+    @staticmethod
+    def walk(state):
+        # move(state(Pl, onfloor, B, H), walk(Pl, P2), state(P2, onfloor, B, H)).
+        if state.monkey_level == 'onfloor':
+            for new_pos in POSITIONS:
+                if not new_pos == state.monkey_pos:
+                    yield State(new_pos, 'onfloor', state.box_pos, state.has)
 
     @rule
     def can_go(self, state):
-        moves = when(move=walk) | when(move=climb) | when(move=push) | when(move=grasp)
-        return when(state=INITIAL)\
+        # canget(Statel) :- move(Statel, Move, State2), canget(State2).
+        moves = when(move=MonkeyBanana.walk) | when(move=MonkeyBanana.climb)\
+                | when(move=MonkeyBanana.push) | when(move=MonkeyBanana.grasp)
+        return when(state=INITIAL) \
             | moves(self.can_go(state))
 
 
