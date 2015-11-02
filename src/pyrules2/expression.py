@@ -25,7 +25,7 @@ class Expression(object):
         """
         :returns An OrExpression combining self and other.
         """
-        if isinstance(self, OrExpression): # TODO: Move to AggregateExpression and document
+        if isinstance(self, OrExpression):  # TODO: Move to AggregateExpression and document
             assert isinstance(other, Expression)
             self.subexpressions = list(self.subexpressions) + [other]
             return self
@@ -34,6 +34,9 @@ class Expression(object):
             other.subexpressions = list(other.subexpressions) + [self]
             return other
         return OrExpression(self, other)
+
+    def __call__(self, input_expression):
+        return ApplyGeneratorExpression(self, input_expression)
 
 
 class ConstantExpression(Expression):
@@ -316,41 +319,36 @@ class ApplyGeneratorExpression(Expression):
     """
     An Expression TODO
     """
-    def __init__(self, input_expr, move_expr):
+    def __init__(self, callable_expression, input_expression):
         """
         :param expr: Subexpression, e.g. when(x=0)
         :param generator_function: TODO
         """
-        assert isinstance(input_expr, Expression)
-        self.input_expr = input_expr
-        assert isinstance(move_expr, Expression)
-        self.move_expr = move_expr
+        assert isinstance(callable_expression, Expression)
+        self.callable_expression = callable_expression
+        assert isinstance(input_expression, Expression)
+        self.input_expression = input_expression
 
     def all_dicts(self):
         """
         :return: Yields TODO
         """
-        for input_dict, move_dict in lazy_product(self.input_expr.all_dicts(),
-                                                  self.move_expr.all_dicts()):
-            assert len(input_dict) == 1  # TODO: Allow more inputs
+        for callable_dict, input_dict in lazy_product(self.callable_expression.all_dicts(),
+                                                      self.input_expression.all_dicts()):
+            assert len(callable_dict) == 1
+            generator_function = callable_dict.values().pop()
+            assert len(input_dict) == 1  # TODO: How to specify key if this is >1?
             key = input_dict.keys().pop()
-            assert len(move_dict) == 1
-            assert 'move' in move_dict
-            generator_function = move_dict['move']
             for generated_value in generator_function(**input_dict):
                 yield {key: generated_value}
 
     def __repr__(self):
         return '{}({!r}, {!r})'.format(self.__class__.__name__,
-                                       self.input_expr,
-                                       self.move_expr)
+                                       self.callable_expression,
+                                       self.input_expression)
 
     def __str__(self, indent=''):
         return '{}{}'.format(indent,
                              self.__class__.__name__) \
-               + '\n{}input:\n{}'.format(indent, self.input_expr.__str__(indent=indent+'  ')) \
-               + '\n{}move:\n{}'.format(indent, self.move_expr.__str__(indent=indent+'  '))
-
-
-def expand(input_expr, move_expr):
-    return ApplyGeneratorExpression(input_expr, move_expr)
+               + '\n{}callable:\n{}'.format(indent, self.callable_expression.__str__(indent=indent+'  ')) \
+               + '\n{}input:\n{}'.format(indent, self.input_expression.__str__(indent=indent+'  '))

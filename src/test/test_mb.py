@@ -1,6 +1,5 @@
 import unittest
 from pyrules2 import when, rule, RuleBook
-from pyrules2.expression import expand
 from itertools import islice
 from collections import namedtuple
 
@@ -73,7 +72,7 @@ class MonkeyBanana(RuleBook):
     def can_go(self, state):
         moves = when(move=walk) | when(move=climb) | when(move=push) | when(move=grasp)
         return when(state=INITIAL)\
-            | expand(self.can_go(state), moves)
+            | moves(self.can_go(state))
 
 
 class Test(unittest.TestCase):
