@@ -2,8 +2,6 @@ import urllib2
 import urllib
 import csv
 import inspect
-from prolog_like_terms import _Atom
-from evaluation import matches
 from functools import wraps
 
 #  TODO: Consider a syntax like return DBpedia.children(x, y) & DBpedia.children(y, z)
