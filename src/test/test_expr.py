@@ -292,7 +292,8 @@ class Test(unittest.TestCase):
         # Fail if wrong number of args
         self.assertRaises(Exception, when(f=f), when(n=1), when(n=1))
         # Fail if callee not callable
-        self.assertRaises(Exception, when(f=0), when(n=1))
+        c = when(f=0)(when(n=1))
+        self.assertRaises(Exception, list, c.all_dicts())
         # Fail if input is not Expression
         self.assertRaises(Exception, when(f=f), 1)
 
