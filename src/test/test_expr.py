@@ -248,6 +248,54 @@ class Test(unittest.TestCase):
         gen = b.all_dicts()
         self.assertRaises(Exception, list, gen)
 
+    def test_call_op(self):
+        def f(n=1, _dummy=2):
+            for i in range(n):
+                yield i
+        f_when = when(f=f)
+        # Call with zero arguments
+        c = f_when(when())
+        self.assertRaises(Exception, list, c.all_dicts())
+        # Call with one argument
+        c = f_when(when(n=1))
+        self.assertListEqual([{'n': 0}], list(c.all_dicts()))
+        # Call with several arguments
+        c = f_when(when(n=1, _dummy=2))
+        self.assertRaises(Exception, list, c.all_dicts())
+        # Returned generator generates no values
+        c = f_when(when(n=0))
+        self.assertListEqual([], list(c.all_dicts()))
+        # Returned generator generates several values
+        c = f_when(when(n=3))
+        self.assertListEqual([{'n': 0}, {'n': 1}, {'n': 2}], list(c.all_dicts()))
+        # Return value not a generator
+        c = when(f=lambda x: x)(when(x=0))
+        self.assertListEqual([{'x': 0}], list(c.all_dicts()))
+        # Call with composite expressions
+        #  - Right-hand side
+        c = when(f=f)(when(n=1) | when(n=2))
+        l = list(c.all_dicts())
+        l.sort(key=lambda d: d['n'])
+        self.assertListEqual([{'n': 0}, {'n': 0}, {'n': 1}], l)
+        #  - Left-hand side
+        c = (when(f=f) | when(f=lambda n: n))(when(n=1))
+        l = list(c.all_dicts())
+        l.sort(key=lambda d: d['n'])
+        self.assertListEqual([{'n': 0}, {'n': 1}], l)
+        #  - Both sides
+        left = when(f=f) | when(f=lambda n: n+1)
+        right = when(n=0) | when(n=1)
+        c = left(right)
+        l = list(c.all_dicts())
+        l.sort(key=lambda d: d['n'])
+        self.assertListEqual([{'n': 0}, {'n': 1}, {'n': 2}], l)
+        # Fail if wrong number of args
+        self.assertRaises(Exception, when(f=f), when(n=1), when(n=1))
+        # Fail if callee not callable
+        self.assertRaises(Exception, when(f=0), when(n=1))
+        # Fail if input is not Expression
+        self.assertRaises(Exception, when(f=f), 1)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,5 +1,6 @@
 from collections import defaultdict
 from pyrules2.util import lazy_product, round_robin
+from types import GeneratorType
 
 __author__ = 'nhc'
 
@@ -336,11 +337,15 @@ class ApplyGeneratorExpression(Expression):
         for callable_dict, input_dict in lazy_product(self.callable_expression.all_dicts(),
                                                       self.input_expression.all_dicts()):
             assert len(callable_dict) == 1
-            generator_function = callable_dict.values().pop()
+            callable_value = callable_dict.values().pop()
             assert len(input_dict) == 1  # TODO: How to specify key if this is >1?
             key = input_dict.keys().pop()
-            for generated_value in generator_function(**input_dict):
-                yield {key: generated_value}
+            returned_value = callable_value(**input_dict)
+            if not isinstance(returned_value, GeneratorType):
+                yield {key: returned_value}
+            else:  # It's a generator
+                for generated_value in returned_value:
+                    yield {key: generated_value}
 
     def __repr__(self):
         return '{}({!r}, {!r})'.format(self.__class__.__name__,
