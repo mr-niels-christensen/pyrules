@@ -346,14 +346,18 @@ class ApplyExpression(Expression):
         """
         :return: Yields return values as described above.
         """
+        # Each combination of a dict from each of the two subexpressions gives rise to one call
         for callable_dict, input_dict in lazy_product(self.callable_expression.all_dicts(),
                                                       self.input_expression.all_dicts()):
+            # Extract the callable value and the input for the call
             assert len(callable_dict) == 1
             callable_value = callable_dict.values().pop()
             assert hasattr(callable_value, '__call__')
-            assert len(input_dict) == 1  # TODO: How to specify key if this is >1?
-            key = input_dict.keys().pop()
+            assert len(input_dict) == 1  # TODO: If we allow >1, how is the key specified below?
+            # Make the call
             returned_value = callable_value(**input_dict)
+            # Output dict or dicts (if the returned value was a generator)
+            key = input_dict.keys().pop()
             if not isinstance(returned_value, GeneratorType):
                 yield {key: returned_value}
             else:  # It's a generator
