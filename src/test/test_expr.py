@@ -199,6 +199,12 @@ class Test(unittest.TestCase):
     def test_or_op(self):
         self.assertListEqual([{'a': 0}, {'a': 1}],
                              list((when(a=0) | when(a=1)).all_dicts()))
+        self.assertListEqual([{'a': 0}, {'a': 1}, {'a': 2}],
+                             list((when(a=0) | when(a=1) | when(a=2)).all_dicts()))
+        l = list((when(a=0) | (when(a=1) | when(a=2))).all_dicts())
+        self.assertEqual(3, len(l))
+        for i in range(3):
+            self.assertIn({'a': i}, l)
 
     def test_and_op(self):
         self.assertListEqual([{'a': 0, 'b': 1}],
