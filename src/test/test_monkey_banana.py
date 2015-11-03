@@ -32,10 +32,11 @@ HAS_HASNOT = ['has', 'hasnot']
 
 State = namedtuple('State', ['monkey_pos', 'monkey_level', 'box_pos', 'has'])
 
+
 INITIAL = State('atdoor', 'onfloor', 'atwindow', False)
 
 
-class MonkeyBanana(RuleBook):
+class MonkeyBanana(State):
     @staticmethod
     def climb(state):
         # move(state(P, onfloor, P, H), climb, state(P, onbox, P, H)).
@@ -64,6 +65,8 @@ class MonkeyBanana(RuleBook):
                 if not new_pos == state.monkey_pos:
                     yield State(new_pos, 'onfloor', state.box_pos, state.has)
 
+
+class MonkeyBananaRules(RuleBook):
     @rule
     def can_go(self, state):
         # canget(Statel) :- move(Statel, Move, State2), canget(State2).
@@ -75,10 +78,10 @@ class MonkeyBanana(RuleBook):
 
 class Test(unittest.TestCase):
     def test_cls(self):
-        print MonkeyBanana
+        print MonkeyBananaRules
 
     def test_can_go(self):
-        for s in islice(MonkeyBanana().can_go(None).all_dicts(), 100):
+        for s in islice(MonkeyBananaRules().can_go(None).all_dicts(), 100):
             if s['state'].has:
                 return  # Success!
         self.fail('No state with a happy monkey')
