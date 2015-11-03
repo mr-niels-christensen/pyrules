@@ -1,5 +1,5 @@
 import unittest
-from pyrules2 import when, rule, RuleBook
+from pyrules2 import when, rule, RuleBook, ANYTHING
 from itertools import islice
 from collections import namedtuple
 
@@ -65,7 +65,7 @@ class MonkeyBanana(State):
 
 class MonkeyBananaRules(RuleBook):
     @rule
-    def can_go(self, state):
+    def can_go(self, state=ANYTHING):
         # canget(Statel) :- move(Statel, Move, State2), canget(State2).
         moves = when(move=MonkeyBanana.walk) | when(move=MonkeyBanana.climb)\
                 | when(move=MonkeyBanana.push) | when(move=MonkeyBanana.grasp)
@@ -78,7 +78,7 @@ class Test(unittest.TestCase):
         print MonkeyBananaRules
 
     def test_can_go(self):
-        for s in islice(MonkeyBananaRules().can_go(None).all_dicts(), 100):
+        for s in islice(MonkeyBananaRules().can_go().all_dicts(), 100):
             if s['state'].has:
                 return  # Success!
         self.fail('No state with a happy monkey')

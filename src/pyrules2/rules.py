@@ -15,6 +15,9 @@ class Var(object):
         return 'Var({})'.format(self.variable_name)
 
 
+ANYTHING = object()
+
+
 class ExpressionMethod(object):
     def __init__(self, rule_method, reference_expression):
         """
@@ -39,7 +42,7 @@ class ExpressionMethod(object):
         for arg_name, arg_value in call_args.iteritems():
             if isinstance(arg_value, Var):
                 var_bindings[arg_name] = arg_value.variable_name
-            elif arg_value is None:
+            elif arg_value is ANYTHING:
                 var_bindings[arg_name] = arg_name
             else:
                 const_bindings[arg_name] = arg_value
