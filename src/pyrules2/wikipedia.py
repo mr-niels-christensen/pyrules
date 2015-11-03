@@ -6,6 +6,25 @@ from functools import wraps
 
 #  TODO: Consider a syntax like return DBpedia.children(x, y) & DBpedia.children(y, z)
 
+'''
+Notes from earlier, working version:
+
+class World(RuleBook):
+    @rule
+    @limit(200)
+    @wikipedia
+    def children(self, parent, child):
+        pass
+
+    @rule
+    def grandchild(self, x, z, y=LOCAL):
+        return self.children(x, y) & self.children(y, z)
+
+    def test_world(self):
+        pairs = set(World().grandchild(var.x, var.z))
+        self.assertIn((atom.Abd_Manaf_ibn_Qusai, atom.Umayya_ibn_Abd_Shams), pairs)
+
+'''
 def wikipedia(func):
     """
     Example usage:
