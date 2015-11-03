@@ -1,6 +1,5 @@
 import unittest
 from pyrules2 import when, rule, RuleBook, ANYTHING
-from itertools import islice
 from collections import namedtuple
 
 '''This pyrules example goes out to the Prolog enthusiasts.
@@ -78,7 +77,7 @@ class Test(unittest.TestCase):
         print MonkeyBananaRules
 
     def test_can_go(self):
-        for s in islice(MonkeyBananaRules().can_go(), 100):
+        for s in MonkeyBananaRules().can_go():
             if s['state'].has:
                 return  # Success!
         self.fail('No state with a happy monkey')

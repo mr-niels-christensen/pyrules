@@ -1,6 +1,7 @@
 import inspect
 from pyrules2.expression import ReferenceExpression, bind
-
+from itertools import islice
+from functools import partial
 
 class VirtualSelf(object):
     pass
@@ -57,9 +58,31 @@ class InternalExpressionMethod(object):
 
 
 class ExternalExpressionMethod(InternalExpressionMethod):
-    def __call__(self, *args):
+    """
+    Like InternalExpressionMethod, but
+      - Does not return the Expression but rather a generator of dicts.
+      - Limits the number of results to the page_size attribute
+        of the RuleBook.
+    Note that ExternalExpressionMethod is a descriptor object.
+    This allows it to access the RuleBook object it is member of.
+    """
+    def __call__(self, rule_book, *args):
+        """
+        Note, because of the descriptor protocol, this method will
+        not be called directly, but through __get__() below.
+        """
         expression = super(ExternalExpressionMethod, self).__call__(*args)
-        return expression.all_dicts()
+        # TODO: Give access to page 2. Workaround: Increase page size.
+        assert isinstance(rule_book, RuleBook)
+        return islice(expression.all_dicts(), rule_book.page_size)
+
+    def __get__(self, instance, instancetype):
+        """
+        Implementation of the descriptor protocol.
+        :return self.__call__ with its first argument bound to the
+        RuleBook instance given.
+        """
+        return partial(self.__call__, instance)
 
 
 def rewrite(rules):
@@ -99,6 +122,10 @@ class RuleBook(object):
     The method itself is changed into a call to RuleBook._dispatch()
     """
     __metaclass__ = Meta
+
+    def __init__(self):
+        # The maximum number of results to generate when calling a rule in this RuleBook
+        self.page_size = 1000
 
 
 def rule(func):
