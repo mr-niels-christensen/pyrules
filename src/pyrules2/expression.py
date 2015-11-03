@@ -353,9 +353,9 @@ class ApplyExpression(Expression):
             assert len(callable_dict) == 1
             callable_value = callable_dict.values().pop()
             assert hasattr(callable_value, '__call__')
-            assert len(input_dict) == 1  # TODO: If we allow >1, how is the key specified below?
+            assert len(input_dict) == 1
             # Make the call
-            returned_value = callable_value(**input_dict)
+            returned_value = callable_value(input_dict.values().pop())
             # Output dict or dicts (if the returned value was a generator)
             key = input_dict.keys().pop()
             if not isinstance(returned_value, GeneratorType):

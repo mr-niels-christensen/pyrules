@@ -33,37 +33,33 @@ HAS_HASNOT = ['has', 'hasnot']
 State = namedtuple('State', ['monkey_pos', 'monkey_level', 'box_pos', 'has'])
 
 
-INITIAL = State('atdoor', 'onfloor', 'atwindow', False)
-
-
 class MonkeyBanana(State):
-    @staticmethod
-    def climb(state):
+    def climb(self):
         # move(state(P, onfloor, P, H), climb, state(P, onbox, P, H)).
-        if state.monkey_level == 'onfloor' and state.monkey_pos == state.box_pos:
-            yield State(state.monkey_pos, 'onbox', state.monkey_pos, state.has)
+        if self.monkey_level == 'onfloor' and self.monkey_pos == self.box_pos:
+            yield MonkeyBanana(self.monkey_pos, 'onbox', self.monkey_pos, self.has)
 
-    @staticmethod
-    def grasp(state):
+    def grasp(self):
         # move(state( middle, onbox, middle, hasnot), grasp, state( middle, onbox, middle, has)).
-        if state == State('middle', 'onbox', 'middle', False):
-            yield State('middle', 'onbox', 'middle', True)
+        if self == MonkeyBanana('middle', 'onbox', 'middle', False):
+            yield MonkeyBanana('middle', 'onbox', 'middle', True)
 
-    @staticmethod
-    def push(state):
+    def push(self):
         # move(state(Pl, onfloor, Pl, H), push(Pl, P2), state(P2, onfloor, P2, H)).
-        if state.monkey_level == 'onfloor' and state.monkey_pos == state.box_pos:
+        if self.monkey_level == 'onfloor' and self.monkey_pos == self.box_pos:
             for new_pos in POSITIONS:
-                if not new_pos == state.monkey_pos:
-                    yield State(new_pos, 'onfloor', new_pos, state.has)
+                if not new_pos == self.monkey_pos:
+                    yield MonkeyBanana(new_pos, 'onfloor', new_pos, self.has)
 
-    @staticmethod
-    def walk(state):
+    def walk(self):
         # move(state(Pl, onfloor, B, H), walk(Pl, P2), state(P2, onfloor, B, H)).
-        if state.monkey_level == 'onfloor':
+        if self.monkey_level == 'onfloor':
             for new_pos in POSITIONS:
-                if not new_pos == state.monkey_pos:
-                    yield State(new_pos, 'onfloor', state.box_pos, state.has)
+                if not new_pos == self.monkey_pos:
+                    yield MonkeyBanana(new_pos, 'onfloor', self.box_pos, self.has)
+
+
+INITIAL = MonkeyBanana('atdoor', 'onfloor', 'atwindow', False)
 
 
 class MonkeyBananaRules(RuleBook):
