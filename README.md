@@ -2,36 +2,44 @@ pyrules
 =======
 pyrules is a pure-Python library for implementing discrete rule-based models.
 
-My simplest example of a discrete rule-based model is this:
+An example of a discrete rule-based model is this:
 ```python
-        ( #Rule 0: If X is nice, then ('bacon', X) is good.
-         r.rule('good', ('bacon', 'X'))
-         .premise('nice', 'X')
-        )
-        ( #Rule 1: If X is good, then ('eggs', X) is nice.
-         r.rule('nice', ('eggs', 'X'))
-         .premise('good', 'X')
-        )
-        r.rule('nice', 'beans') #Rule 2: 'beans' are nice.
-        r.rule('good', 'toast') #Rule 3: 'toast' is good.
+class DanishRoyalFamily(RuleBook):
+    @rule
+    def children(self, parent, child):
+        return \
+            (when(parent=FRED) | when(parent=MARY)) \
+            & \
+            (when(child=CHRIS) | when(child=ISA) | when(child=VINCE) | when(child=JOSIE))
+
+    @rule
+    def spouse(self, x, y):
+        return when(x=FRED, y=MARY) | when(x=JOE, y=MARIE) | self.spouse(y, x)
+
+    @rule
+    def sibling(self, x, y):
+        return when(x=FRED, y=JOE) | self.sibling(y, x)
+
+    @rule
+    def aunt(self, aunt, niece, x=None, y=None):
+        return (self.children(x, niece) &
+                ((self.sibling(aunt, x) & when(y=None)) |
+                (self.spouse(aunt, y) & self.sibling(y, x))))
 ```
 
 This rulebook generates wonderful facts like
 
 ```
-('nice', ('eggs', 'toast'))
-('good', ('bacon', ('eggs', 'toast')))
-('nice', ('eggs', ('bacon', ('eggs', 'toast'))))
+{'aunt': MARIE, 'niece': ISA}
+{'aunt': JOE, 'niece': CHRIS}
 ```
 
-The full source of this example is here: https://github.com/mr-niels-christensen/pyrules/blob/master/src/test/test_bacon_and_eggs.py
+With a bit more code, we could also distinguish boys from girls :)
+
+The full source of this example is here: https://github.com/mr-niels-christensen/pyrules/blob/master/src/test/test_family.py
 
 If you know Prolog, pyrules may now look like a Prolog interpreter. 
 It's not, but it can do a few Prolog-like things.
 For example, it can solve the Monkey & Banana puzzle from Ivan Bratko's book "Prolog
 programming for artificial intelligence".
 See https://github.com/mr-niels-christensen/pyrules/blob/master/src/test/test_monkey_banana.py
-
-If you're into mathematical logic, pyrules can help you work with axioms systems in Python.
-As an example, the following test generates theorems for the Russell-Bernays axiom system
-for propositional logic: https://github.com/mr-niels-christensen/pyrules/blob/master/src/test/test_propositional_logic.py
