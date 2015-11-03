@@ -34,6 +34,10 @@ State = namedtuple('State', ['monkey_pos', 'monkey_level', 'box_pos', 'has'])
 
 
 class MonkeyBanana(State):
+    @staticmethod
+    def initial():
+        return MonkeyBanana('atdoor', 'onfloor', 'atwindow', False)
+
     def climb(self):
         # move(state(P, onfloor, P, H), climb, state(P, onbox, P, H)).
         if self.monkey_level == 'onfloor' and self.monkey_pos == self.box_pos:
@@ -59,16 +63,13 @@ class MonkeyBanana(State):
                     yield MonkeyBanana(new_pos, 'onfloor', self.box_pos, self.has)
 
 
-INITIAL = MonkeyBanana('atdoor', 'onfloor', 'atwindow', False)
-
-
 class MonkeyBananaRules(RuleBook):
     @rule
     def can_go(self, state):
         # canget(Statel) :- move(Statel, Move, State2), canget(State2).
         moves = when(move=MonkeyBanana.walk) | when(move=MonkeyBanana.climb)\
                 | when(move=MonkeyBanana.push) | when(move=MonkeyBanana.grasp)
-        return when(state=INITIAL) \
+        return when(state=MonkeyBanana.initial()) \
             | moves(self.can_go(state))
 
 
