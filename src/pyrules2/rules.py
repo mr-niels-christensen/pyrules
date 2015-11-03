@@ -18,7 +18,7 @@ class Var(object):
 ANYTHING = object()
 
 
-class ExpressionMethod(object):
+class InternalExpressionMethod(object):
     def __init__(self, rule_method, reference_expression):
         """
         Constructs a callable to replace the given method.
@@ -56,11 +56,17 @@ class ExpressionMethod(object):
                                       self.reference_expression)
 
 
+class ExternalExpressionMethod(InternalExpressionMethod):
+    def __call__(self, *args):
+        expression = super(ExternalExpressionMethod, self).__call__(*args)
+        return expression.all_dicts()
+
+
 def rewrite(rules):
     reference_expressions = {rule_name: ReferenceExpression(rule_name) for rule_name in rules}
     vs = VirtualSelf()
     for rule_name, rule_method in rules.items():
-        setattr(vs, rule_name, ExpressionMethod(rule_method, reference_expressions[rule_name]))
+        setattr(vs, rule_name, InternalExpressionMethod(rule_method, reference_expressions[rule_name]))
     for rule_name, rule_method in rules.items():
         arg_names = inspect.getargspec(rule_method).args
         assert arg_names[0] == 'self'
@@ -68,7 +74,7 @@ def rewrite(rules):
         generated_expression = rule_method(vs, *vars_for_non_self_args)
         reference_expressions[rule_name].set_expression(generated_expression)
     for rule_name, rule_method in rules.items():
-        rules[rule_name] = ExpressionMethod(rule_method, reference_expressions[rule_name])
+        rules[rule_name] = ExternalExpressionMethod(rule_method, reference_expressions[rule_name])
     # Store an index of the rules
     rules['__index__'] = reference_expressions
 

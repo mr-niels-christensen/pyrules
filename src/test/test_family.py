@@ -39,28 +39,28 @@ class Test(unittest.TestCase):
         print DanishRoyalFamily
 
     def test_children(self):
-        dicts = DanishRoyalFamily().children().all_dicts()
+        dicts = DanishRoyalFamily().children()
         expected_pairs = product([FRED, MARY], [CHRIS, VINCE, ISA, JOSIE])
         self.assertSetEqual(
             set((d['parent'], d['child']) for d in dicts),
             set(expected_pairs))
 
     def test_spouse(self):
-        dicts = islice(DanishRoyalFamily().spouse().all_dicts(), 10)
+        dicts = islice(DanishRoyalFamily().spouse(), 10)
         expected_pairs = [(JOE, MARIE), (MARIE, JOE), (MARY, FRED), (FRED, MARY)]
         self.assertSetEqual(
             set((d['x'], d['y']) for d in dicts),
             set(expected_pairs))
 
     def test_sibling(self):
-        dicts = islice(DanishRoyalFamily().sibling().all_dicts(), 10)
+        dicts = islice(DanishRoyalFamily().sibling(), 10)
         expected_pairs = [(JOE, FRED), (FRED, JOE)]
         self.assertSetEqual(
             set((d['x'], d['y']) for d in dicts),
             set(expected_pairs))
 
     def test_aunt(self):
-        dicts = list(islice(DanishRoyalFamily().aunt().all_dicts(), 10))
+        dicts = list(islice(DanishRoyalFamily().aunt(), 10))
         expected_pairs = product((JOE, MARIE), (CHRIS, ISA, VINCE, JOSIE))
         self.assertSetEqual(
             set((d['aunt'], d['niece']) for d in dicts),

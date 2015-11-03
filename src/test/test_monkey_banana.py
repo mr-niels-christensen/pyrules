@@ -78,7 +78,7 @@ class Test(unittest.TestCase):
         print MonkeyBananaRules
 
     def test_can_go(self):
-        for s in islice(MonkeyBananaRules().can_go().all_dicts(), 100):
+        for s in islice(MonkeyBananaRules().can_go(), 100):
             if s['state'].has:
                 return  # Success!
         self.fail('No state with a happy monkey')
