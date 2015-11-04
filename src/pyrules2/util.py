@@ -57,13 +57,14 @@ def lazy_product(*iterators):
     # For each new value from one of the iterators...
     for counter, (index, value) in _enumerated_fair_iterator(iterators):
         # Add it to the cache
+        seen_before = value in cache[index]
         cache[index].add(value)
         # If every iterator has been polled once and one was empty: Return
         if counter == tuple_size:
             if any([len(l) == 0 for l in cache]):
                 return  # Some generator did not deliver a value
-        # If every iterator has provided at least one value:
-        if counter >= tuple_size:  # TODO: Only if value not seen before
+        # If every iterator has provided at least one value and this one was new:
+        if counter >= tuple_size and not seen_before:
             # Generate every tuple possible using the new value
             x = list(cache)
             x[index] = [value]
