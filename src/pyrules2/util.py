@@ -41,6 +41,7 @@ def lazy_product(*iterators):
     Akin to itertools.product except
         - works with infinite iterators
         - does not order the generated tuples in the same way
+        - requires every value to be hashable
     For finite iterators, the following should hold:
         set(itertools.product(*iterators)) == set(lazy_product(*iterators))
     :param iterators: Any number of iterators
@@ -52,14 +53,11 @@ def lazy_product(*iterators):
         yield ()
         return
     # General case: Keep a cache of every seen value, per iterator
-    cache = [list() for _ in range(tuple_size)]
-    #   TODO The above lists should be sets.
-    #   To make our dicts hashable, see
-    #   http://stackoverflow.com/questions/9997176/immutable-dictionary-only-use-as-a-key-for-another-dictionary
+    cache = [set() for _ in range(tuple_size)]
     # For each new value from one of the iterators...
     for counter, (index, value) in _enumerated_fair_iterator(iterators):
         # Add it to the cache
-        cache[index].append(value)
+        cache[index].add(value)
         # If every iterator has been polled once and one was empty: Return
         if counter == tuple_size:
             if any([len(l) == 0 for l in cache]):
