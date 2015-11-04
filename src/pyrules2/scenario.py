@@ -4,16 +4,36 @@ __author__ = 'nhc'
 
 
 class Scenario(frozenset):
+    """
+    A Scenario is essentially a frozendict, see http://stackoverflow.com/a/9997296/1095455
+    It is an immutable and hashable dict.
+    """
     def __new__(cls, d):
+        """
+        Creates a frozenset of d.items()
+        :param cls: This class
+        :param d: A dict with immutable, hashable values. Example: {'a': 'b'}
+        :return: The created frozenset
+        """
         assert isinstance(d, dict)
         return super(Scenario, cls).__new__(cls, d.items())
 
     def get_only_item(self):
+        """
+        Verifies that this is a singleton Scenario and returns its only item.
+        :return: The only item in this Scenario, e.g. ('a', 'b')
+        :raises AssertionError if len(self) != 1
+        """
         assert len(self) == 1
         for item in self:
             return item
 
     def as_dict(self):
+        """
+        Converts Scenario to dict
+        :return: A dict equal to the one used to create this Scenario,
+        e.g. {'a': 'b'}
+        """
         return dict(self)
 
     @staticmethod
