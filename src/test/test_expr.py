@@ -33,7 +33,7 @@ class Test(unittest.TestCase):
         # Init
         r = ReferenceExpression()
         # Ref not set
-        self.assertRaises(Exception, r.all_dicts)
+        self.assertRaises(Exception, r.scenarios)
         # Ref set
         r.set_expression(ConstantExpression({'a': 0}))
         self.assertListEqual([{'a': 0}], list(r.all_dicts()))
@@ -143,7 +143,7 @@ class Test(unittest.TestCase):
         f = FilterEqExpression('x', 0, r)
         # No keys
         r.set_expression(ConstantExpression(dict()))
-        gen = f.all_dicts()
+        gen = f.scenarios()
         self.assertRaises(Exception, list, gen)
         # Other key
         r.set_expression(when(y=0))
@@ -248,10 +248,10 @@ class Test(unittest.TestCase):
         self.assertRaises(Exception, bind, when(x=0), None, {})
         self.assertRaises(Exception, bind, when(x=0), {}, None)
         b = bind(when(x=0), {'a': 0}, {})
-        gen = b.all_dicts()
+        gen = b.scenarios()
         self.assertRaises(Exception, list, gen)
         b = bind(when(x=0), {}, {'a': 'b'})
-        gen = b.all_dicts()
+        gen = b.scenarios()
         self.assertRaises(Exception, list, gen)
 
     def test_call_op(self):

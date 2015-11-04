@@ -3,6 +3,7 @@ from pyrules2.expression import ReferenceExpression, bind
 from itertools import islice
 from functools import partial
 
+
 class VirtualSelf(object):
     pass
 
