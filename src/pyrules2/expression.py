@@ -119,7 +119,7 @@ class AndExpression(AggregateExpression):
         scenario_generators = (sub_expr.scenarios() for sub_expr in self.subexpressions)
         for prod in lazy_product(*scenario_generators):
             try:
-                yield Scenario.union(prod)
+                yield Scenario.unite(prod)
             except AssertionError:
                 pass
 
@@ -270,7 +270,7 @@ class RenameExpression(Expression):
                 try:
                     d = scenario.as_dict()
                     new_scenarios = [Scenario({new_key: d[old_key]}) for old_key, new_key in self.map.iteritems()]
-                    yield Scenario.union(new_scenarios)
+                    yield Scenario.unite(new_scenarios)
                 except AssertionError:
                     pass
 

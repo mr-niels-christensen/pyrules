@@ -37,8 +37,10 @@ class Scenario(frozenset):
         return dict(self)
 
     @staticmethod
-    def union(scenarios):
+    def unite(scenarios):
         """
+        Computes the union of Scenarios.
+        Note: Should not be named union() because this would shadow frozenset.union
         :param scenarios A tuple or list of Scenarios
         :return The union of the Scenarios
         :raises AssertionError if two Scenarios defined different values for
@@ -46,13 +48,9 @@ class Scenario(frozenset):
         """
         assert len(scenarios) > 0
         assert all([isinstance(s, Scenario) for s in scenarios])
-        accumulator = defaultdict(set)
-        for scenario in scenarios:
-            for item in scenario:
-                key, value = item
-                accumulator[key].add(value)
-        result_as_dict = dict()
-        for key, value_set in accumulator.iteritems():
-            assert len(value_set) == 1
-            result_as_dict[key] = value_set.pop()
-        return Scenario(result_as_dict)
+        if len(scenarios) == 1:
+            return scenarios[0]
+        result_as_set = scenarios[0].union(*scenarios[1:])
+        keys = set((key for key, value in result_as_set))
+        assert len(keys) == len(result_as_set)
+        return Scenario(dict(result_as_set))
