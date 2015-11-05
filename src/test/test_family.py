@@ -1,5 +1,6 @@
 import unittest
 from pyrules2 import when, rule, RuleBook, ANYTHING
+from pyrules2.rules import FixedPointRuleBook
 from itertools import product
 
 '''Example: Family relations
@@ -11,7 +12,7 @@ from itertools import product
 FRED, MARY, CHRIS, ISA, VINCE, JOSIE, JOE, MARIE = range(8)
 
 
-class DanishRoyalFamily(RuleBook):
+class DanishRoyalFamily(FixedPointRuleBook):
     @rule
     def children(self, parent=ANYTHING, child=ANYTHING):
         return \
@@ -63,7 +64,6 @@ class Test(unittest.TestCase):
             set((d['x'], d['y']) for d in dicts),
             set(expected_pairs))
 
-    @unittest.skip('TODO: Avoid looping')
     def test_aunt(self):
         dicts = list(DanishRoyalFamily().aunt())
         expected_pairs = product((JOE, MARIE), (CHRIS, ISA, VINCE, JOSIE))

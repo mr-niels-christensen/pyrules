@@ -74,7 +74,7 @@ class ExternalExpressionMethod(InternalExpressionMethod):
         """
         expression = super(ExternalExpressionMethod, self).__call__(*args)
         # TODO: Give access to page 2. Workaround: Increase page size.
-        assert isinstance(rule_book, RuleBook)
+        assert isinstance(rule_book, RuleBook) or isinstance(rule_book, FixedPointRuleBook)
         return islice(expression.all_dicts(), rule_book.page_size)
 
     def __get__(self, instance, instancetype):
@@ -103,7 +103,7 @@ def rewrite(rules):
     rules['__index__'] = reference_expressions
 
 
-class Meta(type):
+class StdMeta(type):
     def __new__(mcs, name, bases, class_dict):
         rules = {key: value for key, value in class_dict.items() if hasattr(value, 'pyrules')}
         rewrite(rules)
@@ -119,14 +119,97 @@ class RuleBook(object):
     """
     A RuleBook combines a number of rules, i.e. methods decorated with @rule,
     and answers queries to these. When an instance of the RuleBook is
-    constructed, every @rule is parsed, i.e. transformed into a _ParseTree.
-    The method itself is changed into a call to RuleBook._dispatch()
+    constructed, every @rule is parsed.
     """
-    __metaclass__ = Meta
+    __metaclass__ = StdMeta
 
     def __init__(self):
         # The maximum number of results to generate when calling a rule in this RuleBook
         self.page_size = 1000
+
+
+class FixedPointMeta(type):
+    def __new__(mcs, name, bases, class_dict):
+        rules = {key: value for key, value in class_dict.items() if hasattr(value, 'pyrules')}
+        rewrite(rules)
+        class_dict.update(rules)
+        cls = type.__new__(mcs, name, bases, class_dict)
+        return cls
+
+    def __str__(self):
+        return '\n'.join('{}:\n{}'.format(rule_name, reference_expression.ref) for rule_name, reference_expression in self.__index__.items())
+
+
+from pyrules2.expression import Expression
+
+
+class CacheAndTrigger(Expression):
+    def __init__(self, name, cache, trigger):
+        self.cache = cache
+        self.trigger = trigger
+        self.name = name
+
+    def __repr__(self):
+        return '{}({!r},{!r},{!r})'.format(self.__class__.__name__, self.name, self.cache, self.trigger)
+
+    def scenarios(self):
+        for scenario in self.cache:
+            yield scenario
+        while self.trigger is not None:
+            old = self.cache
+            done = self.trigger()
+            if done:
+                return
+            added = self.cache - old
+            for scenario in added:
+                yield scenario
+
+
+class FixedPointRuleBook(object):
+    """
+    A RuleBook combines a number of rules, i.e. methods decorated with @rule,
+    and answers queries to these. When an instance of the RuleBook is
+    constructed, every @rule is parsed
+    """
+    __metaclass__ = FixedPointMeta
+
+    def __init__(self):
+        # The maximum number of results to generate when calling a rule in this RuleBook
+        self.page_size = 1000
+        generation_0 = {key: set() for key in self.__class__.__index__}
+        self.generations = [generation_0]
+        self.backup = {key: ref_expression.ref for key, ref_expression in self.__class__.__index__.items()}
+        for key, ref_expression in self.__class__.__index__.items():
+            ref_expression.set_expression(CacheAndTrigger(key, set(), self.__next_gen))
+
+    def __next_gen(self):
+        current_gen = self.generations[-1]  # Invariant: this is also in the CacheAndTriggers
+        next_gen = {key: set() for key in self.__class__.__index__}
+        for key, expression in self.backup.items():
+            print '{}/{}?'.format(key, len(self.generations))
+            self.__add_values(next_gen[key], expression)
+            print '{}/{}!'.format(key, len(self.generations))
+        fixed_point = all((current_gen[key] == next_gen[key] for key in current_gen))
+        if not fixed_point:
+            self.generations.append(next_gen)
+            for key, scenario_set in next_gen.items():
+                self.__class__.__index__[key].ref.cache = scenario_set
+        return fixed_point
+
+    def __add_values(self, to_set, expression):
+        # Backup refs
+        # FIXME this is across all instances and threads!
+        # FIXME do not use .ref directly
+        backup = {key: ref_expression.ref.trigger for key, ref_expression in self.__class__.__index__.items()}
+        # Set refs
+        for ref_expression in self.__class__.__index__.values():
+            ref_expression.ref.trigger = None
+        # Evaluate and add
+        for scenario in expression.scenarios():
+            to_set.add(scenario)
+        # Restore refs
+        for key, ref_expression in self.__class__.__index__.items():
+            ref_expression.ref.trigger = backup[key]
 
 
 def rule(func):
