@@ -128,16 +128,72 @@ class RuleBook(object):
         self.page_size = 1000
 
 
+class FixedPointMethod(object):  # TODO: AssignableGeneratorMethod?
+    """
+    TODO
+    """
+    def __init__(self, name):
+        self.name = name
+
+    def __call__(self, rule_book, *args):
+        """
+        Note, because of the descriptor protocol, this method will
+        not be called directly, but through __get__() below.
+        """
+        assert isinstance(rule_book, FixedPointRuleBook)
+        expression = rule_book.__expression_for_name__(self.name)
+        # TODO: Give access to page 2. Workaround: Increase page size.
+        return islice(self.bind_args_expression(rule_book, args).all_dicts(), rule_book.page_size)
+
+    def bind_args_expression(self, rule_book, args):
+        call_args = inspect.getcallargs(rule_book.__class__.__original_rules__[self.name], None, *args)
+        assert call_args['self'] is None
+        del call_args['self']
+        const_bindings = {}
+        var_bindings = {}
+        for arg_name, arg_value in call_args.iteritems():
+            if isinstance(arg_value, Var):
+                var_bindings[arg_name] = arg_value.variable_name
+            elif arg_value is ANYTHING:
+                var_bindings[arg_name] = arg_name
+            else:
+                const_bindings[arg_name] = arg_value
+        return bind(callee_expr=rule_book.__expression_for_name__(self.name),
+                    callee_key_to_constant=const_bindings,
+                    callee_key_to_caller_key=var_bindings)
+
+    def __get__(self, instance, instancetype):
+        """
+        Implementation of the descriptor protocol.
+        :return self.__call__ with its first argument bound to the
+        RuleBook instance given.
+        """
+        print '__get__ of {!r}'.format(self.name)
+        return partial(self.__call__, instance)
+
+
+def parse(rules):
+    reference_expressions = {rule_name: ReferenceExpression(rule_name) for rule_name in rules}
+    vs = VirtualSelf()
+    for rule_name, rule_method in rules.items():
+        setattr(vs, rule_name, InternalExpressionMethod(rule_method, reference_expressions[rule_name]))
+    for rule_name, rule_method in rules.items():
+        arg_names = inspect.getargspec(rule_method).args
+        assert arg_names[0] == 'self'
+        vars_for_non_self_args = [Var(arg) for arg in arg_names[1:]]
+        generated_expression = rule_method(vs, *vars_for_non_self_args)
+        reference_expressions[rule_name].set_expression(generated_expression)
+    return reference_expressions
+
+
 class FixedPointMeta(type):
     def __new__(mcs, name, bases, class_dict):
         rules = {key: value for key, value in class_dict.items() if hasattr(value, 'pyrules')}
-        rewrite(rules)
-        class_dict.update(rules)
+        class_dict['__original_rules__'] = rules
+        for key in rules:
+            class_dict[key] = FixedPointMethod(key)
         cls = type.__new__(mcs, name, bases, class_dict)
         return cls
-
-    def __str__(self):
-        return '\n'.join('{}:\n{}'.format(rule_name, reference_expression.ref) for rule_name, reference_expression in self.__index__.items())
 
 
 from pyrules2.expression import Expression
@@ -176,16 +232,25 @@ class FixedPointRuleBook(object):
     def __init__(self):
         # The maximum number of results to generate when calling a rule in this RuleBook
         self.page_size = 1000
-        generation_0 = {key: set() for key in self.__class__.__index__}
+        generation_0 = {key: set() for key in self.__class__.__original_rules__}
         self.generations = [generation_0]
-        self.backup = {key: ref_expression.ref for key, ref_expression in self.__class__.__index__.items()}
-        for key, ref_expression in self.__class__.__index__.items():
-            ref_expression.set_expression(CacheAndTrigger(key, set(), self.__next_gen))
+        self.__rewrite__()
+
+    def __expression_for_name__(self, name):
+        return self.__caches__[name]
+
+    def __rewrite__(self):
+        parsed_rules = parse(self.__class__.__original_rules__)
+        self.__caches__ = {key: CacheAndTrigger(key, set(), self.__next_gen) for key in parsed_rules}
+        self.__rules_expressions__ = dict()
+        for key, reference_expression in parsed_rules.items():
+            self.__rules_expressions__[key] = reference_expression.ref
+            reference_expression.ref = self.__caches__[key]
 
     def __next_gen(self):
         current_gen = self.generations[-1]  # Invariant: this is also in the CacheAndTriggers
-        next_gen = {key: set() for key in self.__class__.__index__}
-        for key, expression in self.backup.items():
+        next_gen = {key: set() for key in self.__rules_expressions__}
+        for key, expression in self.__rules_expressions__.items():
             print '{}/{}?'.format(key, len(self.generations))
             self.__add_values(next_gen[key], expression)
             print '{}/{}!'.format(key, len(self.generations))
@@ -193,23 +258,21 @@ class FixedPointRuleBook(object):
         if not fixed_point:
             self.generations.append(next_gen)
             for key, scenario_set in next_gen.items():
-                self.__class__.__index__[key].ref.cache = scenario_set
+                self.__caches__[key].cache = scenario_set
         return fixed_point
 
     def __add_values(self, to_set, expression):
         # Backup refs
-        # FIXME this is across all instances and threads!
-        # FIXME do not use .ref directly
-        backup = {key: ref_expression.ref.trigger for key, ref_expression in self.__class__.__index__.items()}
+        # TODO this is across all threads
         # Set refs
-        for ref_expression in self.__class__.__index__.values():
-            ref_expression.ref.trigger = None
+        for cache in self.__caches__.values():
+            cache.trigger = None
         # Evaluate and add
         for scenario in expression.scenarios():
             to_set.add(scenario)
         # Restore refs
-        for key, ref_expression in self.__class__.__index__.items():
-            ref_expression.ref.trigger = backup[key]
+        for cache in self.__caches__.values():
+            cache.trigger = self.__next_gen
 
 
 def rule(func):

@@ -1,5 +1,6 @@
 import unittest
 from pyrules2 import when, rule, RuleBook, ANYTHING
+from pyrules2.rules import FixedPointRuleBook
 from collections import namedtuple
 
 '''This pyrules example goes out to the Prolog enthusiasts.
@@ -62,7 +63,7 @@ class MonkeyBanana(State):
                     yield MonkeyBanana(new_pos, 'onfloor', self.box_pos, self.has)
 
 
-class MonkeyBananaRules(RuleBook):
+class MonkeyBananaRules(FixedPointRuleBook):
     @rule
     def can_go(self, state=ANYTHING):
         # canget(Statel) :- move(Statel, Move, State2), canget(State2).
