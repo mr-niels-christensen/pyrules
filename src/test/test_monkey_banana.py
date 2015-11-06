@@ -78,8 +78,10 @@ class Test(unittest.TestCase):
         print MonkeyBananaRules
 
     def test_can_go(self):
-        for s in MonkeyBananaRules().can_go():
+        mb= MonkeyBananaRules()
+        for s in mb.can_go():
             if s['state'].has:
+                print repr(mb.generations)
                 return  # Success!
         self.fail('No state with a happy monkey')
 

@@ -168,7 +168,6 @@ class FixedPointMethod(object):  # TODO: AssignableGeneratorMethod?
         :return self.__call__ with its first argument bound to the
         RuleBook instance given.
         """
-        print '__get__ of {!r}'.format(self.name)
         return partial(self.__call__, instance)
 
 
@@ -199,9 +198,13 @@ class FixedPointMeta(type):
 from pyrules2.expression import Expression
 
 
+class Done(RuntimeError):
+    pass
+
+
 class CacheAndTrigger(Expression):
-    def __init__(self, name, cache, trigger):
-        self.cache = cache
+    def __init__(self, name, caches, trigger):
+        self.caches = caches
         self.trigger = trigger
         self.name = name
 
@@ -209,16 +212,16 @@ class CacheAndTrigger(Expression):
         return '{}({!r},{!r},{!r})'.format(self.__class__.__name__, self.name, self.cache, self.trigger)
 
     def scenarios(self):
-        for scenario in self.cache:
-            yield scenario
-        while self.trigger is not None:
-            old = self.cache
-            done = self.trigger()
-            if done:
-                return
-            added = self.cache - old
-            for scenario in added:
+        for scenario_set in self.caches(self.name):
+            for scenario in scenario_set:
                 yield scenario
+        while True:
+            try:
+                more = self.trigger(self.name)
+                for scenario in more:
+                    yield scenario
+            except Done:
+                return
 
 
 class FixedPointRuleBook(object):
@@ -234,6 +237,7 @@ class FixedPointRuleBook(object):
         self.page_size = 1000
         generation_0 = {key: set() for key in self.__class__.__original_rules__}
         self.generations = [generation_0]
+        self.computing = False
         self.__rewrite__()
 
     def __expression_for_name__(self, name):
@@ -241,38 +245,39 @@ class FixedPointRuleBook(object):
 
     def __rewrite__(self):
         parsed_rules = parse(self.__class__.__original_rules__)
-        self.__caches__ = {key: CacheAndTrigger(key, set(), self.__next_gen) for key in parsed_rules}
+        self.__caches__ = {key: CacheAndTrigger(key, self.__get_cache_sets__, self.__next_gen) for key in parsed_rules}
         self.__rules_expressions__ = dict()
         for key, reference_expression in parsed_rules.items():
             self.__rules_expressions__[key] = reference_expression.ref
             reference_expression.ref = self.__caches__[key]
 
-    def __next_gen(self):
-        current_gen = self.generations[-1]  # Invariant: this is also in the CacheAndTriggers
+    def __get_cache_sets__(self, key):
+        for generation in self.generations:
+            yield generation[key]
+
+    def __next_gen(self, for_key):
+        if self.computing:
+            raise Done()
+        self.computing = True  # TODO: Thread safety
         next_gen = {key: set() for key in self.__rules_expressions__}
         for key, expression in self.__rules_expressions__.items():
-            print '{}/{}?'.format(key, len(self.generations))
             self.__add_values(next_gen[key], expression)
-            print '{}/{}!'.format(key, len(self.generations))
-        fixed_point = all((current_gen[key] == next_gen[key] for key in current_gen))
+            for scenario_set in self.__get_cache_sets__(key):
+                next_gen[key] -= scenario_set
+        fixed_point = all((len(ss) == 0 for ss in next_gen.values()))
         if not fixed_point:
             self.generations.append(next_gen)
-            for key, scenario_set in next_gen.items():
-                self.__caches__[key].cache = scenario_set
-        return fixed_point
+        self.computing = False
+        if fixed_point:
+            raise Done()
+        return next_gen[for_key]
 
     def __add_values(self, to_set, expression):
         # Backup refs
         # TODO this is across all threads
-        # Set refs
-        for cache in self.__caches__.values():
-            cache.trigger = None
         # Evaluate and add
         for scenario in expression.scenarios():
             to_set.add(scenario)
-        # Restore refs
-        for cache in self.__caches__.values():
-            cache.trigger = self.__next_gen
 
 
 def rule(func):
