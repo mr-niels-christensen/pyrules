@@ -127,6 +127,47 @@ class RuleBook(object):
         # The maximum number of results to generate when calling a rule in this RuleBook
         self.page_size = 1000
 
+from itertools import count
+from pyrules2.expression import when, Expression
+
+
+class VirtualMethod(object):
+    def __init__(self, rule_method, expression):
+        """
+        Constructs a callable to replace the given method.
+        The callable will generate all dicts for the given expression,
+        renamed and filtered using the pyrules.bind() function.
+        :param rule_method: A @rule method from a RuleBook
+        :param expression: The Expression that will be used
+        to represent the body of the rule_method
+        :return: The constructed method.
+        """
+        self.rule_method = rule_method
+        assert isinstance(expression, Expression)
+        self.expression = expression
+
+    def __call__(self, *args):
+        call_args = inspect.getcallargs(self.rule_method, None, *args)
+        assert call_args['self'] is None
+        del call_args['self']
+        const_bindings = {}
+        var_bindings = {}
+        for arg_name, arg_value in call_args.iteritems():
+            if isinstance(arg_value, Var):
+                var_bindings[arg_name] = arg_value.variable_name
+            elif arg_value is ANYTHING:
+                var_bindings[arg_name] = arg_name
+            else:
+                const_bindings[arg_name] = arg_value
+        return bind(callee_expr=self.expression,
+                    callee_key_to_constant=const_bindings,
+                    callee_key_to_caller_key=var_bindings)
+
+    def __repr__(self):
+        return '{}({!r},{!r})'.format(self.__class__.__name__,
+                                      self.rule_method,
+                                      self.expression)
+
 
 class FixedPointMethod(object):  # TODO: AssignableGeneratorMethod?
     """
@@ -141,11 +182,23 @@ class FixedPointMethod(object):  # TODO: AssignableGeneratorMethod?
         not be called directly, but through __get__() below.
         """
         assert isinstance(rule_book, FixedPointRuleBook)
-        expression = rule_book.__expression_for_name__(self.name)
-        # TODO: Give access to page 2. Workaround: Increase page size.
-        return islice(self.bind_args_expression(rule_book, args).all_dicts(), rule_book.page_size)
+        seen = set()
+        for i in count(1):
+            print 'Requesting {}@{}'.format(self.name, i)
+            unbound_expression = rule_book.generation(self.name, i)
+            bound_expression = self.bind_args_expression(rule_book, args,unbound_expression)
+            added = set()
+            for scenario in bound_expression.scenarios():
+                print '{}: Considering {}'.format(self.name, scenario)
+                if scenario not in seen:
+                    added.add(scenario)
+                    yield scenario.as_dict()
+            if len(added) == 0:  # TODO: This should be for all keys, not just this one!
+                return
+            else:
+                seen |= added
 
-    def bind_args_expression(self, rule_book, args):
+    def bind_args_expression(self, rule_book, args, unbound_expression):
         call_args = inspect.getcallargs(rule_book.__class__.__original_rules__[self.name], None, *args)
         assert call_args['self'] is None
         del call_args['self']
@@ -158,7 +211,7 @@ class FixedPointMethod(object):  # TODO: AssignableGeneratorMethod?
                 var_bindings[arg_name] = arg_name
             else:
                 const_bindings[arg_name] = arg_value
-        return bind(callee_expr=rule_book.__expression_for_name__(self.name),
+        return bind(callee_expr=unbound_expression,
                     callee_key_to_constant=const_bindings,
                     callee_key_to_caller_key=var_bindings)
 
@@ -171,20 +224,6 @@ class FixedPointMethod(object):  # TODO: AssignableGeneratorMethod?
         return partial(self.__call__, instance)
 
 
-def parse(rules):
-    reference_expressions = {rule_name: ReferenceExpression(rule_name) for rule_name in rules}
-    vs = VirtualSelf()
-    for rule_name, rule_method in rules.items():
-        setattr(vs, rule_name, InternalExpressionMethod(rule_method, reference_expressions[rule_name]))
-    for rule_name, rule_method in rules.items():
-        arg_names = inspect.getargspec(rule_method).args
-        assert arg_names[0] == 'self'
-        vars_for_non_self_args = [Var(arg) for arg in arg_names[1:]]
-        generated_expression = rule_method(vs, *vars_for_non_self_args)
-        reference_expressions[rule_name].set_expression(generated_expression)
-    return reference_expressions
-
-
 class FixedPointMeta(type):
     def __new__(mcs, name, bases, class_dict):
         rules = {key: value for key, value in class_dict.items() if hasattr(value, 'pyrules')}
@@ -195,33 +234,11 @@ class FixedPointMeta(type):
         return cls
 
 
-from pyrules2.expression import Expression
-
-
 class Done(RuntimeError):
     pass
 
 
-class CacheAndTrigger(Expression):
-    def __init__(self, name, caches, trigger):
-        self.caches = caches
-        self.trigger = trigger
-        self.name = name
-
-    def __repr__(self):
-        return '{}({!r},{!r},{!r})'.format(self.__class__.__name__, self.name, self.cache, self.trigger)
-
-    def scenarios(self):
-        for scenario_set in self.caches(self.name):
-            for scenario in scenario_set:
-                yield scenario
-        while True:
-            try:
-                more = self.trigger(self.name)
-                for scenario in more:
-                    yield scenario
-            except Done:
-                return
+_EMPTY_EXPRESSION = when(x=0) & when(x=1)
 
 
 class FixedPointRuleBook(object):
@@ -233,51 +250,29 @@ class FixedPointRuleBook(object):
     __metaclass__ = FixedPointMeta
 
     def __init__(self):
-        # The maximum number of results to generate when calling a rule in this RuleBook
-        self.page_size = 1000
-        generation_0 = {key: set() for key in self.__class__.__original_rules__}
-        self.generations = [generation_0]
-        self.computing = False
-        self.__rewrite__()
+        pass
 
-    def __expression_for_name__(self, name):
-        return self.__caches__[name]
+    def rules(self):
+        return self.__class__.__original_rules__
 
-    def __rewrite__(self):
-        parsed_rules = parse(self.__class__.__original_rules__)
-        self.__caches__ = {key: CacheAndTrigger(key, self.__get_cache_sets__, self.__next_gen) for key in parsed_rules}
-        self.__rules_expressions__ = dict()
-        for key, reference_expression in parsed_rules.items():
-            self.__rules_expressions__[key] = reference_expression.ref
-            reference_expression.ref = self.__caches__[key]
+    def generation(self, key, generation_no):
+        assert key in self.rules()
+        assert generation_no >= 0
+        if generation_no == 0:
+            return _EMPTY_EXPRESSION
+        previous_generation = {key: self.generation(key, generation_no-1) for key in self.rules()}
+        expression_for_key = self.parse(key, previous_generation)
+        return expression_for_key
 
-    def __get_cache_sets__(self, key):
-        for generation in self.generations:
-            yield generation[key]
-
-    def __next_gen(self, for_key):
-        if self.computing:
-            raise Done()
-        self.computing = True  # TODO: Thread safety
-        next_gen = {key: set() for key in self.__rules_expressions__}
-        for key, expression in self.__rules_expressions__.items():
-            self.__add_values(next_gen[key], expression)
-            for scenario_set in self.__get_cache_sets__(key):
-                next_gen[key] -= scenario_set
-        fixed_point = all((len(ss) == 0 for ss in next_gen.values()))
-        if not fixed_point:
-            self.generations.append(next_gen)
-        self.computing = False
-        if fixed_point:
-            raise Done()
-        return next_gen[for_key]
-
-    def __add_values(self, to_set, expression):
-        # Backup refs
-        # TODO this is across all threads
-        # Evaluate and add
-        for scenario in expression.scenarios():
-            to_set.add(scenario)
+    def parse(self, key, environment):
+        vs = VirtualSelf()
+        for rule_name in self.rules():
+            setattr(vs, rule_name, VirtualMethod(self.rules()[rule_name],
+                                                 environment[rule_name]))
+        arg_names = inspect.getargspec(self.rules()[key]).args
+        assert arg_names[0] == 'self'
+        vars_for_non_self_args = [Var(arg) for arg in arg_names[1:]]
+        return self.rules()[key](vs, *vars_for_non_self_args)
 
 
 def rule(func):
