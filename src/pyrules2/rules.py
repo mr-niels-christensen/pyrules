@@ -229,6 +229,7 @@ class Generation(object):
         self.keys = frozenset(keys)
         self.expressions = {}
         self.frozensets = {}
+        self.fixed_point = False
 
     def set(self, key, expression):
         assert isinstance(expression, Expression), '{!r} should have been an Expression'.format(expression)
@@ -291,38 +292,33 @@ class FixedPointRuleBook(object):
         gen0 = Generation(self.rules().keys())
         gen0.fill(lambda key: _EMPTY_EXPRESSION)
         self.generations = [gen0]
-        self.fixed_point = None
 
     def rules(self):
         return self.__class__.__original_rules__  # TODO: Copy
 
     def expression_for(self, key):
-        def gen():
-            try:
-                for i in count(1):
-                    print 'Requesting {}@{}'.format(key, i)
-                    yield self.generation(key, i)
-            except Done:
-                return
-        return SequentialExpression(gen())
+        return SequentialExpression(self._expressions_for(key))
 
-    def generation(self, key, generation_no):
-        assert key in self.rules()
-        if self.fixed_point is not None and generation_no > self.fixed_point:
-            raise Done()
-        assert generation_no > 0
-        assert generation_no <= len(self.generations)
-        if generation_no == len(self.generations):
-            last_gen = self.generations[-1]
-            next_gen = Generation(self.rules().keys())
-            next_gen.fill(lambda key: self.parse(key, last_gen.as_environment()))
-            if last_gen == next_gen:
-                self.fixed_point = len(self.generations) - 1
+    def _expressions_for(self, key):
+        current_gen = self.generations[-1]
+        yield current_gen.get_expression(key)
+        while not current_gen.fixed_point:
+            next_gen = self.generations[-1]
+            if next_gen == current_gen:
+                if not next_gen.fixed_point:
+                    self._add_generation()
             else:
-                self.generations.append(next_gen)
-        if self.fixed_point is not None and generation_no > self.fixed_point:
-            raise Done()
-        return self.generations[generation_no].get_expression(key)
+                yield next_gen.get_expression(key)
+                current_gen = next_gen
+
+    def _add_generation(self):
+        last_gen = self.generations[-1]
+        next_gen = Generation(self.rules().keys())
+        next_gen.fill(lambda key: self.parse(key, last_gen.as_environment()))
+        if last_gen == next_gen:
+            last_gen.fixed_point = True
+        else:
+            self.generations.append(next_gen)
 
     def parse(self, key, environment):
         vs = VirtualSelf()
