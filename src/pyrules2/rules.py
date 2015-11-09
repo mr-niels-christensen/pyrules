@@ -127,7 +127,6 @@ class RuleBook(object):
         # The maximum number of results to generate when calling a rule in this RuleBook
         self.page_size = 1000
 
-from itertools import count
 from pyrules2.expression import when, Expression
 
 
