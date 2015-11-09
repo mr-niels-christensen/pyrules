@@ -193,17 +193,10 @@ class FixedPointMethod(object):  # TODO: AssignableGeneratorMethod?
         not be called directly, but through __get__() below.
         """
         assert isinstance(rule_book, FixedPointRuleBook)
-        seen = set()
-        try:
-            for i in count(1):
-                print 'Requesting {}@{}'.format(self.name, i)
-                unbound_expression = rule_book.generation(self.name, i)
-                bound_expression = _bind_args_to_rule(rule_book.rules()[self.name], args, unbound_expression)
-                for scenario in bound_expression.scenarios():
-                    if scenario not in seen:
-                        yield scenario.as_dict()
-        except Done:
-            return
+        unbound_expression = rule_book.expression_for(self.name)
+        bound_expression = _bind_args_to_rule(rule_book.rules()[self.name], args, unbound_expression)
+        for scenario in bound_expression.scenarios():
+            yield scenario.as_dict()
 
     def __get__(self, instance, instancetype):
         """
@@ -275,6 +268,17 @@ class Generation(object):
             return '<{} missing={!r} found={!r}>'.format(self.__class__.__name__, self.keys.difference(self.expressions.keys()), self.frozensets)
 
 
+class SequentialExpression(Expression):
+    def __init__(self, expression_generator):
+        self.expression_generator = expression_generator
+
+    def scenarios(self):
+        for expression in self.expression_generator:
+            assert isinstance(expression, Expression)
+            for scenario in expression.scenarios():
+                yield scenario
+
+
 class FixedPointRuleBook(object):
     """
     A RuleBook combines a number of rules, i.e. methods decorated with @rule,
@@ -291,6 +295,16 @@ class FixedPointRuleBook(object):
 
     def rules(self):
         return self.__class__.__original_rules__  # TODO: Copy
+
+    def expression_for(self, key):
+        def gen():
+            try:
+                for i in count(1):
+                    print 'Requesting {}@{}'.format(key, i)
+                    yield self.generation(key, i)
+            except Done:
+                return
+        return SequentialExpression(gen())
 
     def generation(self, key, generation_no):
         assert key in self.rules()
