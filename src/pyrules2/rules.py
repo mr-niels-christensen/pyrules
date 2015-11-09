@@ -130,7 +130,6 @@ class RuleBook(object):
 from itertools import count
 from pyrules2.expression import when, Expression
 
-
 class VirtualMethod(object):
     def __init__(self, rule_method, expression):
         """
@@ -183,20 +182,16 @@ class FixedPointMethod(object):  # TODO: AssignableGeneratorMethod?
         """
         assert isinstance(rule_book, FixedPointRuleBook)
         seen = set()
-        for i in count(1):
-            print 'Requesting {}@{}'.format(self.name, i)
-            unbound_expression = rule_book.generation(self.name, i)
-            bound_expression = self.bind_args_expression(rule_book, args,unbound_expression)
-            added = set()
-            for scenario in bound_expression.scenarios():
-                print '{}: Considering {}'.format(self.name, scenario)
-                if scenario not in seen:
-                    added.add(scenario)
-                    yield scenario.as_dict()
-            if len(added) == 0:  # TODO: This should be for all keys, not just this one!
-                return
-            else:
-                seen |= added
+        try:
+            for i in count(1):
+                print 'Requesting {}@{}'.format(self.name, i)
+                unbound_expression = rule_book.generation(self.name, i)
+                bound_expression = self.bind_args_expression(rule_book, args,unbound_expression)
+                for scenario in bound_expression.scenarios():
+                    if scenario not in seen:
+                        yield scenario.as_dict()
+        except Done:
+            return
 
     def bind_args_expression(self, rule_book, args, unbound_expression):
         call_args = inspect.getcallargs(rule_book.__class__.__original_rules__[self.name], None, *args)
@@ -241,6 +236,50 @@ class Done(RuntimeError):
 _EMPTY_EXPRESSION = when(x=0) & when(x=1)
 
 
+class Generation(object):
+    def __init__(self, keys):
+        self.keys = frozenset(keys)
+        self.expressions = {}
+        self.frozensets = {}
+
+    def set(self, key, expression):
+        assert isinstance(expression, Expression), '{!r} should have been an Expression'.format(expression)
+        assert key in self.keys
+        assert key not in self.expressions
+        assert key not in self.frozensets
+        self.expressions[key] = expression
+        self.frozensets[key] = frozenset(expression.scenarios())
+
+    def __eq__(self, other):
+        assert isinstance(other, Generation)
+        assert self.is_full()
+        assert other.is_full()
+        return self.frozensets == other.frozensets
+
+    def get_expression(self, key, callback=None):
+        if key not in self.expressions:
+            assert callback is not None
+            self.set(key, callback(key))
+        return self.expressions[key]
+
+    def as_environment(self):
+        return self.expressions
+
+    def fill(self, callback):
+        for key in self.keys:
+            if key not in self.expressions:
+                self.set(key, callback(key))
+
+    def is_full(self):
+        return self.keys == set(self.expressions.keys())
+
+    def __repr__(self):
+        if self.is_full():
+            return '<{} full {!r}>'.format(self.__class__.__name__, self.frozensets)
+        else:
+            return '<{} missing={!r} found={!r}>'.format(self.__class__.__name__, self.keys.difference(self.expressions.keys()), self.frozensets)
+
+
 class FixedPointRuleBook(object):
     """
     A RuleBook combines a number of rules, i.e. methods decorated with @rule,
@@ -250,19 +289,31 @@ class FixedPointRuleBook(object):
     __metaclass__ = FixedPointMeta
 
     def __init__(self):
-        pass
+        gen0 = Generation(self.rules().keys())
+        gen0.fill(lambda key: _EMPTY_EXPRESSION)
+        self.generations = [gen0]
+        self.fixed_point = None
 
     def rules(self):
-        return self.__class__.__original_rules__
+        return self.__class__.__original_rules__  # TODO: Copy
 
     def generation(self, key, generation_no):
         assert key in self.rules()
-        assert generation_no >= 0
-        if generation_no == 0:
-            return _EMPTY_EXPRESSION
-        previous_generation = {key: self.generation(key, generation_no-1) for key in self.rules()}
-        expression_for_key = self.parse(key, previous_generation)
-        return expression_for_key
+        if self.fixed_point is not None and generation_no > self.fixed_point:
+            raise Done()
+        assert generation_no > 0
+        assert generation_no <= len(self.generations)
+        if generation_no == len(self.generations):
+            last_gen = self.generations[-1]
+            next_gen = Generation(self.rules().keys())
+            next_gen.fill(lambda key: self.parse(key, last_gen.as_environment()))
+            if last_gen == next_gen:
+                self.fixed_point = len(self.generations) - 1
+            else:
+                self.generations.append(next_gen)
+        if self.fixed_point is not None and generation_no > self.fixed_point:
+            raise Done()
+        return self.generations[generation_no].get_expression(key)
 
     def parse(self, key, environment):
         vs = VirtualSelf()
