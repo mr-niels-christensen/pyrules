@@ -15,7 +15,7 @@ class Expression(object):
         Must be overridden by all subclasses.
         :returns A generator of Scenarios
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def all_dicts(self):
         """

@@ -130,6 +130,32 @@ class RuleBook(object):
 from itertools import count
 from pyrules2.expression import when, Expression
 
+
+def _bind_args_to_rule(rule_method, args, expression):
+    """
+    TODO Make this more clear by closer ties to Var and FixedPointRuleBook.parse
+    :param rule_method:
+    :param args:
+    :param expression:
+    :return:
+    """
+    call_args = inspect.getcallargs(rule_method, None, *args)
+    assert call_args['self'] is None
+    del call_args['self']
+    const_bindings = {}
+    var_bindings = {}
+    for arg_name, arg_value in call_args.iteritems():
+        if isinstance(arg_value, Var):
+            var_bindings[arg_name] = arg_value.variable_name
+        elif arg_value is ANYTHING:
+            var_bindings[arg_name] = arg_name
+        else:
+            const_bindings[arg_name] = arg_value
+    return bind(callee_expr=expression,
+                callee_key_to_constant=const_bindings,
+                callee_key_to_caller_key=var_bindings)
+
+
 class VirtualMethod(object):
     def __init__(self, rule_method, expression):
         """
@@ -146,21 +172,7 @@ class VirtualMethod(object):
         self.expression = expression
 
     def __call__(self, *args):
-        call_args = inspect.getcallargs(self.rule_method, None, *args)
-        assert call_args['self'] is None
-        del call_args['self']
-        const_bindings = {}
-        var_bindings = {}
-        for arg_name, arg_value in call_args.iteritems():
-            if isinstance(arg_value, Var):
-                var_bindings[arg_name] = arg_value.variable_name
-            elif arg_value is ANYTHING:
-                var_bindings[arg_name] = arg_name
-            else:
-                const_bindings[arg_name] = arg_value
-        return bind(callee_expr=self.expression,
-                    callee_key_to_constant=const_bindings,
-                    callee_key_to_caller_key=var_bindings)
+        return _bind_args_to_rule(self.rule_method, args, self.expression)
 
     def __repr__(self):
         return '{}({!r},{!r})'.format(self.__class__.__name__,
@@ -186,29 +198,12 @@ class FixedPointMethod(object):  # TODO: AssignableGeneratorMethod?
             for i in count(1):
                 print 'Requesting {}@{}'.format(self.name, i)
                 unbound_expression = rule_book.generation(self.name, i)
-                bound_expression = self.bind_args_expression(rule_book, args,unbound_expression)
+                bound_expression = _bind_args_to_rule(rule_book.rules()[self.name], args, unbound_expression)
                 for scenario in bound_expression.scenarios():
                     if scenario not in seen:
                         yield scenario.as_dict()
         except Done:
             return
-
-    def bind_args_expression(self, rule_book, args, unbound_expression):
-        call_args = inspect.getcallargs(rule_book.__class__.__original_rules__[self.name], None, *args)
-        assert call_args['self'] is None
-        del call_args['self']
-        const_bindings = {}
-        var_bindings = {}
-        for arg_name, arg_value in call_args.iteritems():
-            if isinstance(arg_value, Var):
-                var_bindings[arg_name] = arg_value.variable_name
-            elif arg_value is ANYTHING:
-                var_bindings[arg_name] = arg_name
-            else:
-                const_bindings[arg_name] = arg_value
-        return bind(callee_expr=unbound_expression,
-                    callee_key_to_constant=const_bindings,
-                    callee_key_to_caller_key=var_bindings)
 
     def __get__(self, instance, instancetype):
         """
