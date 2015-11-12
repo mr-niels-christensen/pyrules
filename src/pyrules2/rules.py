@@ -127,7 +127,8 @@ class RuleBook(object):
         # The maximum number of results to generate when calling a rule in this RuleBook
         self.page_size = 1000
 
-from pyrules2.expression import when, Expression
+from pyrules2.expression import when, Expression, ConstantExpression
+from itertools import chain
 
 
 def _bind_args_to_rule(rule_method, args, expression):
@@ -206,12 +207,18 @@ class FixedPointMethod(object):  # TODO: AssignableGeneratorMethod?
         return partial(self.__call__, instance)
 
 
+constant = object()
+
+
 class FixedPointMeta(type):
     def __new__(mcs, name, bases, class_dict):
         rules = {key: value for key, value in class_dict.items() if hasattr(value, 'pyrules')}
         class_dict['__original_rules__'] = rules
         for key in rules:
             class_dict[key] = FixedPointMethod(key)
+        for key in class_dict:
+            if class_dict[key] == constant:
+                class_dict[key] = key
         cls = type.__new__(mcs, name, bases, class_dict)
         return cls
 
@@ -226,16 +233,13 @@ _EMPTY_EXPRESSION = when(x=0) & when(x=1)
 class Generation(object):
     def __init__(self, keys):
         self.keys = frozenset(keys)
-        self.expressions = {}
         self.frozensets = {}
         self.fixed_point = False
 
     def set(self, key, expression):
         assert isinstance(expression, Expression), '{!r} should have been an Expression'.format(expression)
         assert key in self.keys
-        assert key not in self.expressions
         assert key not in self.frozensets
-        self.expressions[key] = expression
         self.frozensets[key] = frozenset(expression.scenarios())
 
     def __eq__(self, other):
@@ -244,39 +248,47 @@ class Generation(object):
         assert other.is_full()
         return self.frozensets == other.frozensets
 
-    def get_expression(self, key, callback=None):
-        if key not in self.expressions:
-            assert callback is not None
-            self.set(key, callback(key))
-        return self.expressions[key]
+    def get_expression(self, key):
+        assert key in self.frozensets
+
+        def gen():
+            for scenario in self.frozensets[key]:
+                yield ConstantExpression(scenario.as_dict())
+
+        return SequentialExpression(gen)
 
     def as_environment(self):
-        return self.expressions
+        return {key: self.get_expression(key) for key in self.keys}
 
     def fill(self, callback):
         for key in self.keys:
-            if key not in self.expressions:
+            if key not in self.frozensets:
                 self.set(key, callback(key))
 
     def is_full(self):
-        return self.keys == set(self.expressions.keys())
+        return self.keys == set(self.frozensets.keys())
 
     def __repr__(self):
+        fixed = 'fixedpoint!' if self.fixed_point else '(not known fixedpoint)'
         if self.is_full():
-            return '<{} full {!r}>'.format(self.__class__.__name__, self.frozensets)
+            return '<{} {} full {!r}>'.format(self.__class__.__name__, fixed, self.frozensets)
         else:
-            return '<{} missing={!r} found={!r}>'.format(self.__class__.__name__, self.keys.difference(self.expressions.keys()), self.frozensets)
+            return '<{} {} missing={!r} found={!r}>'.format(self.__class__.__name__, fixed, self.keys.difference(self.frozensets.keys()), self.frozensets)
 
 
 class SequentialExpression(Expression):
-    def __init__(self, expression_generator):
-        self.expression_generator = expression_generator
+    def __init__(self, expression_generator_function):
+        self.expression_generator_function = expression_generator_function
 
     def scenarios(self):
-        for expression in self.expression_generator:
+        for expression in self.expression_generator_function():
             assert isinstance(expression, Expression)
             for scenario in expression.scenarios():
                 yield scenario
+
+    def __str__(self, indent=''):
+        me = indent + self.__class__.__name__
+        return '\n'.join(chain([me], (e.__str__(indent=indent + '  ') for e in self.expression_generator_function())))
 
 
 class FixedPointRuleBook(object):
@@ -296,7 +308,7 @@ class FixedPointRuleBook(object):
         return self.__class__.__original_rules__  # TODO: Copy
 
     def expression_for(self, key):
-        return SequentialExpression(self._expressions_for(key))
+        return SequentialExpression(partial(self._expressions_for, key))
 
     def _expressions_for(self, key):
         current_gen = self.generations[-1]
@@ -320,7 +332,7 @@ class FixedPointRuleBook(object):
             self.generations.append(next_gen)
 
     def parse(self, key, environment):
-        vs = VirtualSelf()
+        vs = self.__class__.__new__(self.__class__)
         for rule_name in self.rules():
             setattr(vs, rule_name, VirtualMethod(self.rules()[rule_name],
                                                  environment[rule_name]))
@@ -328,6 +340,10 @@ class FixedPointRuleBook(object):
         assert arg_names[0] == 'self'
         vars_for_non_self_args = [Var(arg) for arg in arg_names[1:]]
         return self.rules()[key](vs, *vars_for_non_self_args)
+
+    def trace(self, key):
+        for i, gen in enumerate(self.generations):
+            print '{}@{}: {}'.format(key, i, set(gen.get_expression(key).scenarios()))
 
 
 def rule(func):

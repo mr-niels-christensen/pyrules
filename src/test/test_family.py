@@ -1,6 +1,6 @@
 import unittest
 from pyrules2 import when, rule, RuleBook, ANYTHING
-from pyrules2.rules import FixedPointRuleBook
+from pyrules2.rules import FixedPointRuleBook, constant
 from itertools import product
 
 '''Example: Family relations
@@ -9,29 +9,29 @@ from itertools import product
    set of basic facts about marriage and offspring.
 '''
 
-FRED, MARY, CHRIS, ISA, VINCE, JOSIE, JOE, MARIE = range(8)
-
 
 class DanishRoyalFamily(FixedPointRuleBook):
+    FRED = MARY = CHRIS = ISA = VINCE = JOSIE = JOE = MARIE = constant
+
     @rule
     def children(self, parent=ANYTHING, child=ANYTHING):
         return \
-            (when(parent=FRED) | when(parent=MARY)) \
+            (when(parent=self.FRED) | when(parent=self.MARY)) \
             & \
-            (when(child=CHRIS) | when(child=ISA) | when(child=VINCE) | when(child=JOSIE))
+            (when(child=self.CHRIS) | when(child=self.ISA) | when(child=self.VINCE) | when(child=self.JOSIE))
 
     @rule
     def spouse(self, x=ANYTHING, y=ANYTHING):
-        return when(x=FRED, y=MARY) | when(x=JOE, y=MARIE) | self.spouse(y, x)
+        return when(x=self.FRED, y=self.MARY) | when(x=self.JOE, y=self.MARIE) | self.spouse(y, x)
 
     @rule
     def sibling(self, x=ANYTHING, y=ANYTHING):
-        return when(x=FRED, y=JOE) | self.sibling(y, x)
+        return when(x=self.FRED, y=self.JOE) | self.sibling(y, x)
 
     @rule
     def aunt(self, aunt=ANYTHING, niece=ANYTHING, x=ANYTHING, y=ANYTHING):
         return (self.children(x, niece) &
-                ((self.sibling(aunt, x) & when(y=ANYTHING)) |  # TODO: Allow unbound y
+                ((self.sibling(aunt, x) & when(y=42)) |  # TODO: Allow unbound y
                 (self.spouse(aunt, y) & self.sibling(y, x))))
 
 
@@ -41,7 +41,7 @@ class Test(unittest.TestCase):
 
     def test_children(self):
         dicts = DanishRoyalFamily().children()
-        expected_pairs = product([FRED, MARY], [CHRIS, VINCE, ISA, JOSIE])
+        expected_pairs = product([DanishRoyalFamily.FRED, DanishRoyalFamily.MARY], [DanishRoyalFamily.CHRIS, DanishRoyalFamily.VINCE, DanishRoyalFamily.ISA, DanishRoyalFamily.JOSIE])
         self.assertSetEqual(
             set((d['parent'], d['child']) for d in dicts),
             set(expected_pairs))
@@ -50,7 +50,7 @@ class Test(unittest.TestCase):
         drf = DanishRoyalFamily()
         drf.page_size = 10
         dicts = drf.spouse()
-        expected_pairs = [(JOE, MARIE), (MARIE, JOE), (MARY, FRED), (FRED, MARY)]
+        expected_pairs = [(DanishRoyalFamily.JOE, DanishRoyalFamily.MARIE), (DanishRoyalFamily.MARIE, DanishRoyalFamily.JOE), (DanishRoyalFamily.MARY, DanishRoyalFamily.FRED), (DanishRoyalFamily.FRED, DanishRoyalFamily.MARY)]
         self.assertSetEqual(
             set((d['x'], d['y']) for d in dicts),
             set(expected_pairs))
@@ -59,14 +59,15 @@ class Test(unittest.TestCase):
         drf = DanishRoyalFamily()
         drf.page_size = 10
         dicts = drf.sibling()
-        expected_pairs = [(JOE, FRED), (FRED, JOE)]
+        expected_pairs = [(DanishRoyalFamily.JOE, DanishRoyalFamily.FRED), (DanishRoyalFamily.FRED, DanishRoyalFamily.JOE)]
         self.assertSetEqual(
             set((d['x'], d['y']) for d in dicts),
             set(expected_pairs))
 
     def test_aunt(self):
-        dicts = list(DanishRoyalFamily().aunt())
-        expected_pairs = product((JOE, MARIE), (CHRIS, ISA, VINCE, JOSIE))
+        drf = DanishRoyalFamily()
+        dicts = list(drf.aunt())
+        expected_pairs = product((DanishRoyalFamily.JOE, DanishRoyalFamily.MARIE), (DanishRoyalFamily.CHRIS, DanishRoyalFamily.ISA, DanishRoyalFamily.VINCE, DanishRoyalFamily.JOSIE))
         self.assertSetEqual(
             set((d['aunt'], d['niece']) for d in dicts),
             set(expected_pairs))
