@@ -281,18 +281,21 @@ class ContainerWrappingExpression(Expression):
 
 
 class SequentialExpression(Expression):
-    def __init__(self, expression_generator_function):
-        self.expression_generator_function = expression_generator_function
+    def __init__(self, expression_iter):
+        self.expression_iter = expression_iter
+
+    def __iter__(self):
+        return self.expression_iter()
 
     def scenarios(self):
-        for expression in self.expression_generator_function():
+        for expression in self:
             assert isinstance(expression, Expression)
             for scenario in expression.scenarios():
                 yield scenario
 
     def __str__(self, indent=''):
         me = indent + self.__class__.__name__
-        return '\n'.join(chain([me], (e.__str__(indent=indent + '  ') for e in self.expression_generator_function())))
+        return '\n'.join(chain([me], (e.__str__(indent=indent + '  ') for e in self)))
 
 
 class FixedPointRuleBook(object):
