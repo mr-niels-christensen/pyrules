@@ -7,6 +7,9 @@ class Scenario(frozenset):
     """
     A Scenario is essentially a frozendict, see http://stackoverflow.com/a/9997296/1095455
     It is an immutable and hashable dict.
+    TODO: Make into a collections.Mapping, see
+    http://stackoverflow.com/questions/3387691/python-how-to-perfectly-override-a-dict
+    http://stackoverflow.com/questions/3385269/how-to-wrap-a-python-dict
     """
     def __new__(cls, d):
         """
