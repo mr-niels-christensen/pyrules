@@ -127,8 +127,10 @@ class RuleBook(object):
         # The maximum number of results to generate when calling a rule in this RuleBook
         self.page_size = 1000
 
-from pyrules2.expression import when, Expression, ConstantExpression
+from pyrules2.expression import when, Expression
+from pyrules2.scenario import Scenario
 from itertools import chain
+from collections import Container
 
 
 def _bind_args_to_rule(rule_method, args, expression):
@@ -250,12 +252,7 @@ class Generation(object):
 
     def get_expression(self, key):
         assert key in self.frozensets
-
-        def gen():
-            for scenario in self.frozensets[key]:
-                yield ConstantExpression(scenario.as_dict())
-
-        return SequentialExpression(gen)
+        return ContainerWrappingExpression(self.frozensets[key])
 
     def as_environment(self):
         return {key: self.get_expression(key) for key in self.keys}
@@ -274,6 +271,17 @@ class Generation(object):
             return '<{} {} full {!r}>'.format(self.__class__.__name__, fixed, self.frozensets)
         else:
             return '<{} {} missing={!r} found={!r}>'.format(self.__class__.__name__, fixed, self.keys.difference(self.frozensets.keys()), self.frozensets)
+
+
+class ContainerWrappingExpression(Expression):
+    def __init__(self, scenario_container):
+        assert isinstance(scenario_container, Container)
+        self.scenario_container = scenario_container
+
+    def scenarios(self):
+        for scenario in self.scenario_container:
+            assert isinstance(scenario, Scenario)
+            yield scenario
 
 
 class SequentialExpression(Expression):
