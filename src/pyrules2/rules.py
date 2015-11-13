@@ -225,10 +225,6 @@ class FixedPointMeta(type):
         return cls
 
 
-class Done(RuntimeError):
-    pass
-
-
 _EMPTY_EXPRESSION = when(x=0) & when(x=1)
 
 
