@@ -1,7 +1,8 @@
 import inspect
 from pyrules2.expression import when, Expression, bind, IterableWrappingExpression
 from functools import partial
-from itertools import chain
+from itertools import chain, imap
+from collections import Iterable
 
 
 class Var(object):
@@ -152,22 +153,12 @@ class Generation(object):
             return '<{} {} missing={!r} found={!r}>'.format(self.__class__.__name__, fixed, self.keys.difference(self.frozensets.keys()), self.frozensets)
 
 
-class SequentialExpression(Expression):
-    def __init__(self, expression_iter):
-        self.expression_iter = expression_iter
+class DIYIterable(Iterable):
+    def __init__(self, my_iter):
+        self.my_iter = my_iter
 
     def __iter__(self):
-        return self.expression_iter()
-
-    def scenarios(self):
-        for expression in self:
-            assert isinstance(expression, Expression)
-            for scenario in expression.scenarios():
-                yield scenario
-
-    def __str__(self, indent=''):
-        me = indent + self.__class__.__name__
-        return '\n'.join(chain([me], (e.__str__(indent=indent + '  ') for e in self)))
+        return self.my_iter()
 
 
 class RuleBook(object):
@@ -187,7 +178,12 @@ class RuleBook(object):
         return self.__class__.__original_rules__  # TODO: Copy
 
     def expression_for(self, key):
-        return SequentialExpression(partial(self._expressions_for, key))
+        def get_scenario_iterator():
+            expression_iterator = self._expressions_for(key)
+            scenario_iterator = chain.from_iterable(imap(lambda e: e.scenarios(), expression_iterator))
+            return scenario_iterator
+        scenario_iterable = DIYIterable(get_scenario_iterator)
+        return IterableWrappingExpression(scenario_iterable)
 
     def _expressions_for(self, key):
         current_gen = self.generations[-1]
