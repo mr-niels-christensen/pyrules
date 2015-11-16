@@ -372,7 +372,17 @@ class ApplyExpression(Expression):
 
 
 class ContainerWrappingExpression(Expression):
+    """
+    An Expression that wraps a Scenario Container
+    and serves the Container's contents on every call
+    to scenarios()
+    """
     def __init__(self, scenario_container):
+        """
+        :param scenario_container: A Container containing
+        only Scenario instances, e.g. [Scenario({'x': 42})]
+        :return: An expression wrapping the given container.
+        """
         assert isinstance(scenario_container, Container)
         self.scenario_container = scenario_container
 
@@ -381,3 +391,8 @@ class ContainerWrappingExpression(Expression):
             assert isinstance(scenario, Scenario)
             yield scenario
 
+    def __repr__(self):
+        return '{}({!r})'.format(self.__class__.__name__, list(self.scenarios()))
+
+    def __str__(self, indent=''):
+        return '{}{}: {!r}'.format(indent, self.__class__.__name__, list(self.scenarios()))
