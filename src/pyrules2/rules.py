@@ -1,5 +1,5 @@
 import inspect
-from pyrules2.expression import when, Expression, bind, IterableWrappingExpression
+from pyrules2.expression import Expression, bind, IterableWrappingExpression, EMPTY
 from functools import partial
 from itertools import chain, imap
 from collections import Iterable
@@ -109,9 +109,6 @@ class FixedPointMeta(type):
         return cls
 
 
-_EMPTY_EXPRESSION = when(x=0) & when(x=1)
-
-
 class Generation(object):
     def __init__(self, keys):
         self.keys = frozenset(keys)
@@ -171,7 +168,7 @@ class RuleBook(object):
 
     def __init__(self):
         gen0 = Generation(self.rules().keys())
-        gen0.fill(lambda key: _EMPTY_EXPRESSION)
+        gen0.fill(lambda key: EMPTY)
         self.generations = [gen0]
 
     def rules(self):

@@ -1,5 +1,5 @@
 import unittest
-from pyrules2.expression import ConstantExpression, AndExpression, OrExpression, ReferenceExpression, when, FilterEqExpression, RenameExpression, bind, IterableWrappingExpression
+from pyrules2.expression import ConstantExpression, AndExpression, OrExpression, ReferenceExpression, when, FilterEqExpression, RenameExpression, bind, IterableWrappingExpression, EMPTY
 from pyrules2.scenario import Scenario
 
 
@@ -321,6 +321,9 @@ class Test(unittest.TestCase):
         l = [Scenario({1: 2}), Scenario({2: 3}), Scenario({1: 2})]
         e = IterableWrappingExpression(l)
         self.assertListEqual(l, list(e.scenarios()))
+
+    def test_empty(self):
+        self.assertListEqual([], list(EMPTY.scenarios()))
 
 if __name__ == "__main__":
     unittest.main()

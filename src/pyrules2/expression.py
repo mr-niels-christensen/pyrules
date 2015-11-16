@@ -44,6 +44,15 @@ class Expression(object):
         return ApplyExpression(self, input_expression)
 
 
+class _EmptyExpression(Expression):
+    def scenarios(self):
+        if False:
+            yield
+
+"""An Expression that generates no scenarios."""
+EMPTY = _EmptyExpression()
+
+
 class ConstantExpression(Expression):
     """
     An Expression generating exactly one Scenario.
