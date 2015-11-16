@@ -1,6 +1,5 @@
 import unittest
-from pyrules2 import when, rule, RuleBook, ANYTHING
-from pyrules2.rules import FixedPointRuleBook, constant
+from pyrules2 import when, rule, RuleBook, ANYTHING, constant
 from itertools import product
 
 '''Example: Family relations
@@ -10,7 +9,7 @@ from itertools import product
 '''
 
 
-class DanishRoyalFamily(FixedPointRuleBook):
+class DanishRoyalFamily(RuleBook):
     FRED = MARY = CHRIS = ISA = VINCE = JOSIE = JOE = MARIE = constant
 
     @rule
