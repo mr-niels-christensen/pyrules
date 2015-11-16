@@ -1,9 +1,7 @@
 import inspect
-from pyrules2.expression import when, Expression, bind
-from pyrules2.scenario import Scenario
+from pyrules2.expression import when, Expression, bind, ContainerWrappingExpression
 from functools import partial
 from itertools import chain
-from collections import Container
 
 
 class Var(object):
@@ -152,17 +150,6 @@ class Generation(object):
             return '<{} {} full {!r}>'.format(self.__class__.__name__, fixed, self.frozensets)
         else:
             return '<{} {} missing={!r} found={!r}>'.format(self.__class__.__name__, fixed, self.keys.difference(self.frozensets.keys()), self.frozensets)
-
-
-class ContainerWrappingExpression(Expression):
-    def __init__(self, scenario_container):
-        assert isinstance(scenario_container, Container)
-        self.scenario_container = scenario_container
-
-    def scenarios(self):
-        for scenario in self.scenario_container:
-            assert isinstance(scenario, Scenario)
-            yield scenario
 
 
 class SequentialExpression(Expression):

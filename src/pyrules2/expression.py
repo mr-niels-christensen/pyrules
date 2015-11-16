@@ -1,7 +1,7 @@
 from pyrules2.scenario import Scenario
 from pyrules2.util import lazy_product, round_robin
 from types import GeneratorType
-from collections import Mapping
+from collections import Mapping, Container
 
 __author__ = 'nhc'
 
@@ -369,3 +369,15 @@ class ApplyExpression(Expression):
                              self.__class__.__name__) \
                + '\n{}callable:\n{}'.format(indent, self.callable_expression.__str__(indent=indent+'  ')) \
                + '\n{}input:\n{}'.format(indent, self.input_expression.__str__(indent=indent+'  '))
+
+
+class ContainerWrappingExpression(Expression):
+    def __init__(self, scenario_container):
+        assert isinstance(scenario_container, Container)
+        self.scenario_container = scenario_container
+
+    def scenarios(self):
+        for scenario in self.scenario_container:
+            assert isinstance(scenario, Scenario)
+            yield scenario
+
