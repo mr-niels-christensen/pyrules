@@ -19,11 +19,17 @@ ANYTHING = object()
 
 def _bind_args_to_rule(rule_method, args, expression):
     """
-    TODO Make this more clear by closer ties to Var and FixedPointRuleBook.parse
-    :param rule_method:
-    :param args:
-    :param expression:
-    :return:
+    Translates the call
+      rule_method(*args)
+    into an Expression, with the given expression representing the body of
+    the given rule_method.
+    TODO Make this more clear by closer ties to ANYTHING, Var and FixedPointRuleBook.parse
+    :param rule_method: A Python function object that used to be the method
+     of a RuleBook instance.
+    :param args: Suitable arguments for rule_method.
+    :param expression: Any Expression.
+    :return: An Expression which adds equality constraints to expression
+    and picks/renames variables from its scenarios.
     """
     call_args = inspect.getcallargs(rule_method, None, *args)
     assert call_args['self'] is None
@@ -66,9 +72,12 @@ class VirtualMethod(object):
                                       self.expression)
 
 
-class FixedPointMethod(object):  # TODO: AssignableGeneratorMethod?
+class RuleBookMethod(object):
     """
-    TODO
+    A callable object used to replace rules in a RuleBook.
+    This object will call RuleBook.expression_for too get an expression,
+    bind the call args using _bind_args_to_rule(), then yield
+    all the scenarios from the resulting Expressions.
     """
     def __init__(self, name):
         self.name = name
@@ -93,15 +102,27 @@ class FixedPointMethod(object):  # TODO: AssignableGeneratorMethod?
         return partial(self.__call__, instance)
 
 
+"""Syntactic sugar for RuleBook subclasses.
+Add a class variable like this:
+    FOOBAR = constant
+to define FOOBAR as a constant value containing 'FOOBAR'"""
 constant = object()
 
 
-class FixedPointMeta(type):
+class RuleBookMeta(type):
+    """
+    Metaclass for RuleBook.
+    Every class with this as a metaclass will be modified in two ways:
+      - Every method annotated with @rule is saved in an internal data structure,
+        then replaced by a RuleBookMethod.
+      - Every variable equal to the object "constant" above will instead
+        be assigned to an object containing the variable name.
+    """
     def __new__(mcs, name, bases, class_dict):
         rules = {key: value for key, value in class_dict.items() if hasattr(value, 'pyrules')}
         class_dict['__original_rules__'] = rules
         for key in rules:
-            class_dict[key] = FixedPointMethod(key)
+            class_dict[key] = RuleBookMethod(key)
         for key in class_dict:
             if class_dict[key] == constant:
                 class_dict[key] = key
@@ -110,6 +131,11 @@ class FixedPointMeta(type):
 
 
 class Generation(object):
+    """
+    A Generation represents one step in a fixed point computation, see
+    https://en.wikipedia.org/wiki/Kleene_fixed-point_theorem
+    https://en.wikipedia.org/wiki/Knaster%E2%80%93Tarski_theorem
+    """
     def __init__(self, keys):
         self.keys = frozenset(keys)
         self.frozensets = {}
@@ -151,6 +177,9 @@ class Generation(object):
 
 
 class DIYIterable(Iterable):
+    """
+    Utility for constructing an Iterable from an __iter__() function.
+    """
     def __init__(self, my_iter):
         self.my_iter = my_iter
 
@@ -164,7 +193,7 @@ class RuleBook(object):
     and answers queries to these. When an instance of the RuleBook is
     constructed, every @rule is parsed
     """
-    __metaclass__ = FixedPointMeta
+    __metaclass__ = RuleBookMeta
 
     def __init__(self):
         gen0 = Generation(self.rules().keys())
