@@ -1,6 +1,7 @@
 import unittest
-from pyrules2.expression import ConstantExpression, AndExpression, OrExpression, ReferenceExpression, when, FilterEqExpression, RenameExpression, bind, ContainerWrappingExpression
+from pyrules2.expression import ConstantExpression, AndExpression, OrExpression, ReferenceExpression, when, FilterEqExpression, RenameExpression, bind, IterableWrappingExpression
 from pyrules2.scenario import Scenario
+
 
 class Test(unittest.TestCase):
     def test_constant(self):
@@ -303,22 +304,22 @@ class Test(unittest.TestCase):
         # Fail if input is not Expression
         self.assertRaises(Exception, when(f=f), 1)
 
-    def test_container_wrapping(self):
-        # Parameter is not a container
-        self.assertRaises(Exception, ContainerWrappingExpression, 42)
-        # Container contains non-Scenario values
-        e = ContainerWrappingExpression([Scenario({1: 2}), Scenario({2: 3}), 42])
+    def test_iterable_wrapping(self):
+        # Parameter is not an iterable
+        self.assertRaises(Exception, IterableWrappingExpression, 42)
+        # Iterable contains non-Scenario values
+        e = IterableWrappingExpression([Scenario({1: 2}), Scenario({2: 3}), 42])
         self.assertRaises(Exception, list, e.scenarios())
-        # Container is empty
-        e = ContainerWrappingExpression([])
+        # Iterable is empty
+        e = IterableWrappingExpression([])
         self.assertListEqual([], list(e.scenarios()))
-        # Container is not empty
+        # Iterable is not empty
         l = [Scenario({1: 2}), Scenario({2: 3})]
-        e = ContainerWrappingExpression(l)
+        e = IterableWrappingExpression(l)
         self.assertListEqual(l, list(e.scenarios()))
-        # Container contains same value twice
+        # Iterable contains same value twice
         l = [Scenario({1: 2}), Scenario({2: 3}), Scenario({1: 2})]
-        e = ContainerWrappingExpression(l)
+        e = IterableWrappingExpression(l)
         self.assertListEqual(l, list(e.scenarios()))
 
 if __name__ == "__main__":

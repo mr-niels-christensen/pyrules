@@ -1,7 +1,7 @@
 from pyrules2.scenario import Scenario
 from pyrules2.util import lazy_product, round_robin
 from types import GeneratorType
-from collections import Mapping, Container
+from collections import Mapping, Iterable
 
 __author__ = 'nhc'
 
@@ -371,23 +371,23 @@ class ApplyExpression(Expression):
                + '\n{}input:\n{}'.format(indent, self.input_expression.__str__(indent=indent+'  '))
 
 
-class ContainerWrappingExpression(Expression):
+class IterableWrappingExpression(Expression):
     """
-    An Expression that wraps a Scenario Container
-    and serves the Container's contents on every call
+    An Expression that wraps a Scenario Iterable
+    and serves the Iterables's contents on every call
     to scenarios()
     """
-    def __init__(self, scenario_container):
+    def __init__(self, scenario_iterable):
         """
-        :param scenario_container: A Container containing
+        :param scenario_iterable: An Iterable containing
         only Scenario instances, e.g. [Scenario({'x': 42})]
-        :return: An expression wrapping the given container.
+        :return: An expression wrapping the given iterable.
         """
-        assert isinstance(scenario_container, Container)
-        self.scenario_container = scenario_container
+        assert isinstance(scenario_iterable, Iterable)
+        self.scenario_iterable = scenario_iterable
 
     def scenarios(self):
-        for scenario in self.scenario_container:
+        for scenario in self.scenario_iterable:
             assert isinstance(scenario, Scenario)
             yield scenario
 

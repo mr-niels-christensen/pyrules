@@ -1,5 +1,5 @@
 import inspect
-from pyrules2.expression import when, Expression, bind, ContainerWrappingExpression
+from pyrules2.expression import when, Expression, bind, IterableWrappingExpression
 from functools import partial
 from itertools import chain
 
@@ -131,7 +131,7 @@ class Generation(object):
 
     def get_expression(self, key):
         assert key in self.frozensets
-        return ContainerWrappingExpression(self.frozensets[key])
+        return IterableWrappingExpression(self.frozensets[key])
 
     def as_environment(self):
         return {key: self.get_expression(key) for key in self.keys}
