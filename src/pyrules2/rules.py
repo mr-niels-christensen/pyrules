@@ -1,5 +1,5 @@
 import inspect
-from pyrules2.expression import Expression, bind, IterableWrappingExpression, EMPTY
+from pyrules2.expression import ConstantExpression, Expression, bind, IterableWrappingExpression, EMPTY
 from functools import partial
 from itertools import chain, imap
 from collections import Iterable
@@ -15,6 +15,17 @@ class Var(object):
 
 
 ANYTHING = object()
+person = ANYTHING
+
+
+def no(variable):
+    """
+    Syntactic sugar to bind a variable to None when it is not needed.
+    :param variable: An instance of Var.
+    :return: An Expression binding the variable name to None.
+    """
+    assert isinstance(variable, Var)
+    return ConstantExpression({variable.variable_name: None})
 
 
 def _bind_args_to_rule(rule_method, args, expression):

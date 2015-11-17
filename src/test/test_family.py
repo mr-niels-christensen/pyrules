@@ -1,5 +1,5 @@
 import unittest
-from pyrules2 import when, rule, RuleBook, ANYTHING, constant
+from pyrules2 import when, rule, RuleBook, ANYTHING, constant, no
 from itertools import product
 
 '''Example: Family relations
@@ -32,7 +32,7 @@ class DanishRoyalFamily(RuleBook):
                    niece_nephew=ANYTHING,
                    parent=ANYTHING,
                    spouse=ANYTHING):
-        direct = self.sibling(aunt_uncle, parent) & when(spouse=42)
+        direct = self.sibling(aunt_uncle, parent) & no(spouse)
         indirect = self.spouse(aunt_uncle, spouse) & self.sibling(spouse, parent)
         return self.child(parent, niece_nephew) & \
                (direct | indirect)
