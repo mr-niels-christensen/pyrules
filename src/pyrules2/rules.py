@@ -16,6 +16,7 @@ class Var(object):
 
 ANYTHING = object()
 person = ANYTHING
+anything = ANYTHING
 
 
 def no(variable):

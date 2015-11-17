@@ -1,2 +1,2 @@
 from expression import when
-from rules import rule, RuleBook, no, person
+from rules import rule, RuleBook, no, person, anything

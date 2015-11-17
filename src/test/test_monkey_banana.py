@@ -1,5 +1,5 @@
 import unittest
-from pyrules2 import when, rule, RuleBook, ANYTHING
+from pyrules2 import when, rule, RuleBook, anything
 from collections import namedtuple
 
 '''This pyrules example goes out to the Prolog enthusiasts.
@@ -25,11 +25,19 @@ HAS_HASNOT = ['has', 'hasnot']
    where each state is on the form
        ('state',  monkey_pos, monkey_level, box_pos, has_hasnot)
    and a move is 'grasp', 'climb', ('walk', pos1, pos2) or ('push', pos1, pos2).
-
-   I.e. starting from the door, our monkey can get its banana.
 '''
 
 State = namedtuple('State', ['monkey_pos', 'monkey_level', 'box_pos', 'has'])
+
+'''These are Bratko's Prolog rules:
+move(state(P, onfloor, P, H), climb, state(P, onbox, P, H)).
+move(state( middle, onbox, middle, hasnot), grasp, state( middle, onbox, middle, has)).
+move(state(Pl, onfloor, Pl, H), push(Pl, P2), state(P2, onfloor, P2, H)).
+move(state(Pl, onfloor, B, H), walk(Pl, P2), state(P2, onfloor, B, H)).
+canget(Statel) :- move(Statel, Move, State2), canget(State2).
+
+   Below is a pyrules implementation.
+'''
 
 
 class MonkeyBanana(State):
@@ -38,24 +46,20 @@ class MonkeyBanana(State):
         return MonkeyBanana('atdoor', 'onfloor', 'atwindow', False)
 
     def climb(self):
-        # move(state(P, onfloor, P, H), climb, state(P, onbox, P, H)).
         if self.monkey_level == 'onfloor' and self.monkey_pos == self.box_pos:
             yield MonkeyBanana(self.monkey_pos, 'onbox', self.monkey_pos, self.has)
 
     def grasp(self):
-        # move(state( middle, onbox, middle, hasnot), grasp, state( middle, onbox, middle, has)).
         if self == MonkeyBanana('middle', 'onbox', 'middle', False):
             yield MonkeyBanana('middle', 'onbox', 'middle', True)
 
     def push(self):
-        # move(state(Pl, onfloor, Pl, H), push(Pl, P2), state(P2, onfloor, P2, H)).
         if self.monkey_level == 'onfloor' and self.monkey_pos == self.box_pos:
             for new_pos in POSITIONS:
                 if not new_pos == self.monkey_pos:
                     yield MonkeyBanana(new_pos, 'onfloor', new_pos, self.has)
 
     def walk(self):
-        # move(state(Pl, onfloor, B, H), walk(Pl, P2), state(P2, onfloor, B, H)).
         if self.monkey_level == 'onfloor':
             for new_pos in POSITIONS:
                 if not new_pos == self.monkey_pos:
@@ -64,12 +68,11 @@ class MonkeyBanana(State):
 
 class MonkeyBananaRules(RuleBook):
     @rule
-    def can_go(self, state=ANYTHING):
-        # canget(Statel) :- move(Statel, Move, State2), canget(State2).
-        moves = when(move=MonkeyBanana.walk) | when(move=MonkeyBanana.climb)\
-                | when(move=MonkeyBanana.push) | when(move=MonkeyBanana.grasp)
-        return when(state=MonkeyBanana.initial()) \
-            | moves(self.can_go(state))
+    def can_go(self, state=anything):
+        moves = when(move=MonkeyBanana.walk) | when(move=MonkeyBanana.climb) | \
+                when(move=MonkeyBanana.push) | when(move=MonkeyBanana.grasp)
+        return when(state=MonkeyBanana.initial()) | \
+               moves(self.can_go(state))
 
 
 class Test(unittest.TestCase):
@@ -77,7 +80,7 @@ class Test(unittest.TestCase):
         print MonkeyBananaRules
 
     def test_can_go(self):
-        mb= MonkeyBananaRules()
+        mb = MonkeyBananaRules()
         for s in mb.can_go():
             if s['state'].has:
                 return  # Success!
