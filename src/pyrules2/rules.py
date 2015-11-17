@@ -113,13 +113,6 @@ class RuleBookMethod(object):
         return partial(self.__call__, instance)
 
 
-"""Syntactic sugar for RuleBook subclasses.
-Add a class variable like this:
-    FOOBAR = constant
-to define FOOBAR as a constant value containing 'FOOBAR'"""
-constant = object()
-
-
 class RuleBookMeta(type):
     """
     Metaclass for RuleBook.
@@ -135,7 +128,7 @@ class RuleBookMeta(type):
         for key in rules:
             class_dict[key] = RuleBookMethod(key)
         for key in class_dict:
-            if class_dict[key] == constant:
+            if class_dict[key] == ANYTHING:
                 class_dict[key] = key
         cls = type.__new__(mcs, name, bases, class_dict)
         return cls

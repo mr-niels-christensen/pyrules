@@ -1,5 +1,5 @@
 import unittest
-from pyrules2 import when, rule, RuleBook, ANYTHING, constant, no
+from pyrules2 import when, rule, RuleBook, person, no
 from itertools import product
 
 '''Example: Family relations
@@ -10,28 +10,28 @@ from itertools import product
 
 
 class DanishRoyalFamily(RuleBook):
-    FRED = MARY = CHRIS = ISA = VINCE = JOSIE = JOE = MARIE = constant
+    FRED = MARY = CHRIS = ISA = VINCE = JOSIE = JOE = MARIE = person
 
     @rule
-    def child(self, parent=ANYTHING, child=ANYTHING):
+    def child(self, parent=person, child=person):
         p = when(parent=self.FRED) | when(parent=self.MARY)
         c = when(child=self.CHRIS) | when(child=self.ISA) | when(child=self.VINCE) | when(child=self.JOSIE)
         return p & c
 
     @rule
-    def spouse(self, x=ANYTHING, y=ANYTHING):
+    def spouse(self, x=person, y=person):
         return when(x=self.FRED, y=self.MARY) | when(x=self.JOE, y=self.MARIE) | self.spouse(y, x)
 
     @rule
-    def sibling(self, x=ANYTHING, y=ANYTHING):
+    def sibling(self, x=person, y=person):
         return when(x=self.FRED, y=self.JOE) | self.sibling(y, x)
 
     @rule
     def aunt_uncle(self,
-                   aunt_uncle=ANYTHING,
-                   niece_nephew=ANYTHING,
-                   parent=ANYTHING,
-                   spouse=ANYTHING):
+                   aunt_uncle=person,
+                   niece_nephew=person,
+                   parent=person,
+                   spouse=person):
         direct = self.sibling(aunt_uncle, parent) & no(spouse)
         indirect = self.spouse(aunt_uncle, spouse) & self.sibling(spouse, parent)
         return self.child(parent, niece_nephew) & \
