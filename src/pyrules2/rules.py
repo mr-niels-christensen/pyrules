@@ -89,7 +89,7 @@ class RuleBookMethod(object):
         """
         assert isinstance(rule_book, RuleBook)
         unbound_expression = rule_book.expression_for(self.name)
-        bound_expression = _bind_args_to_rule(rule_book.rules()[self.name], args, unbound_expression)
+        bound_expression = _bind_args_to_rule(rule_book.rules[self.name], args, unbound_expression)
         for scenario in bound_expression.scenarios():
             yield scenario.as_dict()
 
@@ -240,18 +240,10 @@ class RuleBook(object):
         Creates and stores the initial Generation of the fixed-point
         iteration (see Generation above).
         """
-        gen0 = Generation(self.rules().keys())
+        self.rules = self.__class__.__original_rules__.copy()
+        gen0 = Generation(self.rules.keys())
         gen0.fill(lambda key: EMPTY)
         self.generations = [gen0]
-
-    def rules(self):
-        """
-        Provides access to all rules (i.e. methods annotated with @rule)
-        in the class definition.
-        :return A dict mapping every rule to the method that it was
-        defined by.
-        """
-        return self.__class__.__original_rules__.copy()  # TODO: Instance copy
 
     def expression_for(self, key):
         """
@@ -301,7 +293,7 @@ class RuleBook(object):
         to self.generations.
         """
         last_gen = self.generations[-1]
-        next_gen = Generation(self.rules().keys())
+        next_gen = Generation(self.rules.keys())
         next_gen.fill(lambda key: self.parse(key, last_gen.as_environment()))
         if last_gen == next_gen:
             last_gen.fixed_point = True
@@ -324,17 +316,17 @@ class RuleBook(object):
         """
         # Create a virtual "self" object to represent a RuleBook for the given environment
         virtual_self = self.__class__.__new__(self.__class__)
-        for rule_name in self.rules():
+        for rule_name in self.rules:
             setattr(virtual_self,
                     rule_name,
-                    VirtualMethod(self.rules()[rule_name],
+                    VirtualMethod(self.rules[rule_name],
                                   environment[rule_name]))
         # Create an abstract variable for each non-self argument required
-        arg_names = inspect.getargspec(self.rules()[key]).args
+        arg_names = inspect.getargspec(self.rules[key]).args
         assert arg_names[0] == 'self'
         vars_for_non_self_args = [Var(arg) for arg in arg_names[1:]]
         # Call the rule method with the constructed arguments and return its result
-        return self.rules()[key](virtual_self, *vars_for_non_self_args)
+        return self.rules[key](virtual_self, *vars_for_non_self_args)
 
     def trace(self, key):
         """
