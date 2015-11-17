@@ -13,11 +13,10 @@ class DanishRoyalFamily(RuleBook):
     FRED = MARY = CHRIS = ISA = VINCE = JOSIE = JOE = MARIE = constant
 
     @rule
-    def children(self, parent=ANYTHING, child=ANYTHING):
-        return \
-            (when(parent=self.FRED) | when(parent=self.MARY)) \
-            & \
-            (when(child=self.CHRIS) | when(child=self.ISA) | when(child=self.VINCE) | when(child=self.JOSIE))
+    def child(self, parent=ANYTHING, child=ANYTHING):
+        p = when(parent=self.FRED) | when(parent=self.MARY)
+        c = when(child=self.CHRIS) | when(child=self.ISA) | when(child=self.VINCE) | when(child=self.JOSIE)
+        return p & c
 
     @rule
     def spouse(self, x=ANYTHING, y=ANYTHING):
@@ -28,18 +27,23 @@ class DanishRoyalFamily(RuleBook):
         return when(x=self.FRED, y=self.JOE) | self.sibling(y, x)
 
     @rule
-    def aunt(self, aunt=ANYTHING, niece=ANYTHING, x=ANYTHING, y=ANYTHING):
-        return (self.children(x, niece) &
-                ((self.sibling(aunt, x) & when(y=42)) |  # TODO: Allow unbound y
-                (self.spouse(aunt, y) & self.sibling(y, x))))
+    def aunt_uncle(self,
+                   aunt_uncle=ANYTHING,
+                   niece_nephew=ANYTHING,
+                   parent=ANYTHING,
+                   spouse=ANYTHING):
+        direct = self.sibling(aunt_uncle, parent) & when(spouse=42)
+        indirect = self.spouse(aunt_uncle, spouse) & self.sibling(spouse, parent)
+        return self.child(parent, niece_nephew) & \
+               (direct | indirect)
 
 
 class Test(unittest.TestCase):
     def test_cls(self):
         print DanishRoyalFamily
 
-    def test_children(self):
-        dicts = DanishRoyalFamily().children()
+    def test_child(self):
+        dicts = DanishRoyalFamily().child()
         expected_pairs = product([DanishRoyalFamily.FRED, DanishRoyalFamily.MARY], [DanishRoyalFamily.CHRIS, DanishRoyalFamily.VINCE, DanishRoyalFamily.ISA, DanishRoyalFamily.JOSIE])
         self.assertSetEqual(
             set((d['parent'], d['child']) for d in dicts),
@@ -47,7 +51,6 @@ class Test(unittest.TestCase):
 
     def test_spouse(self):
         drf = DanishRoyalFamily()
-        drf.page_size = 10
         dicts = drf.spouse()
         expected_pairs = [(DanishRoyalFamily.JOE, DanishRoyalFamily.MARIE), (DanishRoyalFamily.MARIE, DanishRoyalFamily.JOE), (DanishRoyalFamily.MARY, DanishRoyalFamily.FRED), (DanishRoyalFamily.FRED, DanishRoyalFamily.MARY)]
         self.assertSetEqual(
@@ -56,7 +59,6 @@ class Test(unittest.TestCase):
 
     def test_sibling(self):
         drf = DanishRoyalFamily()
-        drf.page_size = 10
         dicts = drf.sibling()
         expected_pairs = [(DanishRoyalFamily.JOE, DanishRoyalFamily.FRED), (DanishRoyalFamily.FRED, DanishRoyalFamily.JOE)]
         self.assertSetEqual(
@@ -65,10 +67,10 @@ class Test(unittest.TestCase):
 
     def test_aunt(self):
         drf = DanishRoyalFamily()
-        dicts = list(drf.aunt())
+        dicts = list(drf.aunt_uncle())
         expected_pairs = product((DanishRoyalFamily.JOE, DanishRoyalFamily.MARIE), (DanishRoyalFamily.CHRIS, DanishRoyalFamily.ISA, DanishRoyalFamily.VINCE, DanishRoyalFamily.JOSIE))
         self.assertSetEqual(
-            set((d['aunt'], d['niece']) for d in dicts),
+            set((d['aunt_uncle'], d['niece_nephew']) for d in dicts),
             set(expected_pairs))
 
 if __name__ == "__main__":
