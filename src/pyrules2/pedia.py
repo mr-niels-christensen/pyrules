@@ -7,6 +7,11 @@ from functools import wraps
 #  TODO: Consider a syntax like return DBpedia.children(x, y) & DBpedia.children(y, z)
 
 '''
+Example:All events in Rome 82 BC
+http://dbpedia.org/page/Category:82_BC
+http://dbpedia.org/page/Category:Years
+http://dbpedia.org/page/Battle_of_the_Colline_Gate_(82_BC)
+
 Notes from earlier, working version:
 
 class World(RuleBook):
