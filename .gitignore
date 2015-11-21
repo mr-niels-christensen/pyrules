@@ -1,6 +1,7 @@
 venv
 .*.made
 .idea
+google-maps-api-key.txt
 *.py[cod]
 
 # C extensions
