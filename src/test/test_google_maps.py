@@ -1,23 +1,21 @@
 import unittest
-from pyrules2 import when, rule, RuleBook, person, no
-from pyrules2.wolframalpha import wap
-import urllib
+import googlemaps
+from pyrules2.googlemaps import GoogleMapsMatrix
 
 
 class Test(unittest.TestCase):
-    def test_foo(self):
-        server = 'http://api.wolframalpha.com/v2/query'
-        appid = 'JUTQGW-TGXG9E75E4'
-        input = 'driving time from Peterhead to Aboyne'
+    def setUp(self):
+        # TODO: Sane way to import key
+        with open('/Users/nhc/git/pyrules/google-maps-api-key.txt') as f:
+            self.key = f.read()
 
-        waeo = wap.WolframAlphaEngine(appid, server)
-        query = waeo.CreateQuery(input)
-        result = waeo.PerformQuery(query)
-        waeqr = wap.WolframAlphaQueryResult(result)
-        jsonresult = waeqr.JsonResult()
-        from pprint import pprint
-        from json import loads
-        pprint(loads(jsonresult))
+    def test_matrix(self):
+        c = googlemaps.Client(key=self.key)
+        m = GoogleMapsMatrix(c,
+                             'Aboyne, Scotland',
+                             'Peterhead, Scotland',
+                             'Inverurie, Scotland')
+        print m
 
 
 if __name__ == "__main__":
