@@ -17,7 +17,9 @@ class Test(unittest.TestCase):
                                 'Berlin, Germany',
                                 'Lisbon, Portugal',
                                 )
-        print 'Total distance: {} km'.format(m.distance()/1000)
+        print m
+        for a in m.alternatives():
+            print a
 
 
 if __name__ == "__main__":
