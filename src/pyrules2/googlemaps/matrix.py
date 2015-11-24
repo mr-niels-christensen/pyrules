@@ -3,8 +3,29 @@ from googlemaps import Client
 __author__ = 'nhc'
 
 
+def driving_roundtrip(google_maps_client, *waypoints):
+    matrix = GoogleMapsMatrix(google_maps_client, waypoints)
+    return Roundtrip(matrix, [])
+
+
+class Roundtrip(object):
+    def __init__(self, matrix, transpositions):
+        assert isinstance(matrix, GoogleMapsMatrix)
+        self.matrix = matrix
+        self.transpositions = transpositions
+
+    def distance(self):
+        order = list(self.matrix.waypoints)
+        for index_0, index_1 in self.transpositions:
+            tmp = order[index_0]
+            order[index_0] = order[index_1]
+            order[index_1] = tmp
+        trips = zip(order, order[1:] + order[0:1])
+        return sum([self.matrix.distance[trip] for trip in trips])
+
+
 class GoogleMapsMatrix(object):
-    def __init__(self, google_maps_client, *waypoints):
+    def __init__(self, google_maps_client, waypoints):
         assert isinstance(google_maps_client, Client)
         for waypoint in waypoints:
             assert isinstance(waypoint, basestring)
