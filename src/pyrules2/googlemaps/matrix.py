@@ -1,5 +1,6 @@
 from collections import namedtuple
 from googlemaps import Client
+from frozendict import frozendict
 
 __author__ = 'nhc'
 
@@ -44,4 +45,4 @@ def google_maps_matrix(google_maps_client, waypoints):
             assert element['status'] == 'OK'
             duration[(origin, destination)] = element['duration']['value']
             distance[(origin, destination)] = element['distance']['value']
-    return Matrix(tuple(waypoints), distance, duration)
+    return Matrix(tuple(waypoints), frozendict(distance), frozendict(duration))
