@@ -12,13 +12,21 @@ def driving_roundtrip(google_maps_client, *waypoints):
 
 class Roundtrip(namedtuple('Roundtrip', ['matrix', 'transpositions'])):
     def distance(self):
+        order = self.order()
+        trips = zip(order[:-1], order[1:])
+        return sum([self.matrix.distance[trip] for trip in trips])
+
+    def order(self):
         order = list(self.matrix.waypoints)
         for index_0, index_1 in self.transpositions:
             tmp = order[index_0]
             order[index_0] = order[index_1]
             order[index_1] = tmp
-        trips = zip(order, order[1:] + order[0:1])
-        return sum([self.matrix.distance[trip] for trip in trips])
+        order.append(order[0])
+        return order
+
+    def __str__(self):
+        return '{} km: {}'.format(self.distance() / 1000, ' --> '.join(self.order()))
 
 
 class Matrix(namedtuple('Matrix', ['waypoints', 'distance', 'duration'])):
