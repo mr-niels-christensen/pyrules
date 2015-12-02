@@ -8,8 +8,17 @@ __author__ = 'nhc'
 
 
 def driving_roundtrip(google_maps_client, *waypoints):
-    matrix = google_maps_matrix(google_maps_client, waypoints)
-    return Roundtrip(matrix, tuple(xrange(len(waypoints) - 1)))
+    wp_list = [(wp if isinstance(wp, frozendict) else place(wp)) for wp in waypoints]
+    matrix = google_maps_matrix(google_maps_client, wp_list)
+    return Roundtrip(matrix, tuple(xrange(len(wp_list) - 1)))
+
+
+_ADDRESS_KEY_ = '_address_'
+
+
+def place(address, **kwargs):
+    kwargs[_ADDRESS_KEY_] = address
+    return frozendict(kwargs)
 
 
 class Roundtrip(namedtuple('Roundtrip', ['matrix', 'order'])):
@@ -28,9 +37,14 @@ class Roundtrip(namedtuple('Roundtrip', ['matrix', 'order'])):
         return [self._origin_()] + [sico[i] for i in self.order] + [self._origin_()]
 
     def distance(self):
+        return sum([self.matrix.distance[trip] for trip in self.trips()])
+
+    def trips(self):
         itinerary = self.itinerary()
-        trips = zip(itinerary[:-1], itinerary[1:])
-        return sum([self.matrix.distance[trip] for trip in trips])
+        return zip(itinerary[:-1], itinerary[1:])
+
+    def duration(self):
+        return sum([self.matrix.duration[trip] for trip in self.trips()])
 
     def __str__(self):
         return '{} km: {}'.format(self.distance() / 1000, ' --> '.join(self.itinerary()))
@@ -43,11 +57,11 @@ class Matrix(namedtuple('Matrix', ['waypoints', 'distance', 'duration'])):
 def google_maps_matrix(google_maps_client, waypoints):
     assert isinstance(google_maps_client, Client)
     for waypoint in waypoints:
-        assert isinstance(waypoint, basestring)
+        assert isinstance(waypoint, frozendict)
     distance = dict()
     duration = dict()
-    response = google_maps_client.distance_matrix(origins=list(waypoints),
-                                                  destinations=list(waypoints),
+    response = google_maps_client.distance_matrix(origins=[wp[_ADDRESS_KEY_] for wp in waypoints],
+                                                  destinations=[wp[_ADDRESS_KEY_] for wp in waypoints],
                                                   mode='driving',
                                                   units='metric')
     assert response['status'] == 'OK'
