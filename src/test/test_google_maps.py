@@ -1,12 +1,12 @@
 from os import environ
 import unittest
 import googlemaps
-from pyrules2.googlemaps import driving_roundtrip
+from pyrules2.googlemaps import driving_roundtrip, place
 
-COP = 'Copenhagen, Denmark'
-MAD = 'Madrid, Spain'
-BER = 'Berlin, Germany'
-LIS = 'Lisbon, Portugal'
+COP = place('Copenhagen, Denmark')
+MAD = place('Madrid, Spain')
+BER = place('Berlin, Germany')
+LIS = place('Lisbon, Portugal')
 
 KM = 1000
 
