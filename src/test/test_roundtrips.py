@@ -1,5 +1,5 @@
 import unittest
-from pyrules2 import RuleBook, rule, when, anything, place,  driving_roundtrip, RESET, reroute
+from pyrules2 import RuleBook, rule, when, anything, place,  driving_roundtrip, RESET, reroute, leq
 
 
 BASE = place('Erslev, Denmark', milk=RESET)
@@ -10,13 +10,6 @@ KARL = place('Rakkeby, Denmark', milk=6)
 ROUNDTRIP = driving_roundtrip(BASE, LARS, TINA, BASE, LISA, KARL)
 
 
-def milk_max_30_rt(rt):
-    if rt.milk(max) <= 30:
-        yield rt
-
-exp_milk_max_30_rt = when(_=milk_max_30_rt)
-
-
 class Dairy(RuleBook):
     @rule
     def covers(self, rt=anything):
@@ -24,7 +17,7 @@ class Dairy(RuleBook):
 
     @rule
     def viable(self, rt=anything):
-        return exp_milk_max_30_rt(self.covers(rt))
+        return leq(max, 'milk', 30)(self.covers(rt))
 
 
 class Test(unittest.TestCase):

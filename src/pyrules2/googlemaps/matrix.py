@@ -24,6 +24,14 @@ RESET = object()
 
 reroute = when(f=lambda x: x.alternatives())
 
+
+def leq(sum_or_max, item, limit):
+    def filter_fun(value):
+        if getattr(value, item)(sum_or_max) <= limit:
+            yield value
+    return when(_=filter_fun)
+
+
 def driving_roundtrip(*waypoints):
     wp_list = [(wp if isinstance(wp, frozendict) else place(wp)) for wp in waypoints]
     matrix = google_maps_matrix(wp_list)
