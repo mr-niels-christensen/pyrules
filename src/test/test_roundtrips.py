@@ -10,28 +10,32 @@ KARL = place('Rakkeby, Denmark', milk=6)
 ROUNDTRIP = driving_roundtrip(BASE, LARS, TINA, BASE, LISA, KARL)
 
 
+def milk_max_30_rt(rt):
+    if rt.milk(max) <= 30:
+        yield rt
+
+exp_milk_max_30_rt = when(_=milk_max_30_rt)
+
+
 class Dairy(RuleBook):
     @rule
     def covers(self, rt=anything):
         return when(rt=ROUNDTRIP) | reroute(self.covers(rt))
 
-    '''@rule
-    def viable(self, first_roundtrip=anything, second_roundtrip=anything):
-        return self.covers(first_roundtrip, second_roundtrip) & \
-               sum('production', first_roundtrip) <= 30 & \
-               sum('production', second_roundtrip) <= 30'''
+    @rule
+    def viable(self, rt=anything):
+        return exp_milk_max_30_rt(self.covers(rt))
 
 
 class Test(unittest.TestCase):
     def test_balance(self):
         d = Dairy()
-        for scenario in d.covers():
+        for scenario in d.viable():
             rt = scenario['rt']
-            if rt.milk(max) <= 30:
-                print rt.milk(max)
-                print '{}km, {}hours'.format(rt.distance()/1000, rt.duration()/3600)
-                print [stop['_address_'] for stop in rt.itinerary()]
-                print '-'*60
+            print rt.milk(max)
+            print '{}km, {}hours'.format(rt.distance()/1000, rt.duration()/3600)
+            print [stop['_address_'] for stop in rt.itinerary()]
+            print '-'*60
 
 
 if __name__ == "__main__":
