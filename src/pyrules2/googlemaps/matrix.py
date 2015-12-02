@@ -1,5 +1,5 @@
 from collections import namedtuple
-from googlemaps import Client
+from numbers import Number
 from frozendict import frozendict
 from itertools import permutations, islice
 from os import environ
@@ -17,6 +17,9 @@ try:
 except KeyError:
     def _client_():
         raise Exception('To use Google Maps, put your API key in the environment variable "GOOGLE_MAPS_API_KEY"')
+
+
+RESET = object()
 
 
 def driving_roundtrip(*waypoints):
@@ -57,6 +60,29 @@ class Roundtrip(namedtuple('Roundtrip', ['matrix', 'order'])):
 
     def duration(self):
         return sum([self.matrix.duration[trip] for trip in self.trips()])
+
+    def _compute_between_resets(self, item):
+        current_cycle= list()
+        for stop in self.itinerary():
+            value = stop[item]
+            if value == RESET:
+                if len(current_cycle) > 0:
+                    yield sum(current_cycle)
+                    current_cycle = []
+            else:
+                assert isinstance(value, Number), 'Not a number: {}[{}]=={}'.format(stop, item, value)
+                current_cycle.append(value)
+        if len(current_cycle) > 0:
+            yield sum(current_cycle)
+
+    def _compute(self, sum_or_max, item):
+        return sum_or_max(self._compute_between_resets(item))
+
+    def __getattr__(self, item):
+        def f(sum_or_max):
+            assert sum_or_max in [sum, max]
+            return self._compute(sum_or_max, item)
+        return f
 
     def __str__(self):
         return '{} km: {}'.format(self.distance() / 1000, ' --> '.join(self.itinerary()))

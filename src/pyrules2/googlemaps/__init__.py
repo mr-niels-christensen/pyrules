@@ -1,3 +1,3 @@
-from matrix import driving_roundtrip, place
+from matrix import driving_roundtrip, place, RESET
 
 __author__ = 'nhc'
