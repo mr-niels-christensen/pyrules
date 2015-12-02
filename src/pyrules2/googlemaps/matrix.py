@@ -4,7 +4,7 @@ from frozendict import frozendict
 from itertools import permutations, islice
 from os import environ
 import googlemaps
-
+from pyrules2 import when
 
 __author__ = 'nhc'
 
@@ -21,6 +21,8 @@ except KeyError:
 
 RESET = object()
 
+
+reroute = when(f=lambda x: x.alternatives())
 
 def driving_roundtrip(*waypoints):
     wp_list = [(wp if isinstance(wp, frozendict) else place(wp)) for wp in waypoints]

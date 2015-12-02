@@ -1,5 +1,5 @@
 import unittest
-from pyrules2 import RuleBook, rule, when, anything, place,  driving_roundtrip, RESET
+from pyrules2 import RuleBook, rule, when, anything, place,  driving_roundtrip, RESET, reroute
 
 
 BASE = place('Erslev, Denmark', milk=RESET)
@@ -13,9 +13,7 @@ ROUNDTRIP = driving_roundtrip(BASE, LARS, TINA, BASE, LISA, KARL)
 class Dairy(RuleBook):
     @rule
     def covers(self, rt=anything):
-        alt = when(f=lambda x: x.alternatives())
-        return when(rt=ROUNDTRIP) | \
-               alt(self.covers(rt))
+        return when(rt=ROUNDTRIP) | reroute(self.covers(rt))
 
     '''@rule
     def viable(self, first_roundtrip=anything, second_roundtrip=anything):
