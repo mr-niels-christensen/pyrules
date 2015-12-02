@@ -25,9 +25,10 @@ RESET = object()
 reroute = when(f=lambda x: x.alternatives())
 
 
-def leq(sum_or_max, item, limit):
+def limit(**item_limits):
     def filter_fun(value):
-        if getattr(value, item)(sum_or_max) <= limit:
+        bounds_ok = [getattr(value, item)(max) <= lim for item, lim in item_limits.items()]
+        if all(bounds_ok):
             yield value
     return when(_=filter_fun)
 
