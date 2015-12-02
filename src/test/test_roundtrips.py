@@ -11,9 +11,6 @@ LISA = place('Redsted, Denmark', production=10)
 KARL = place('Rakkeby, Denmark', production=6)
 
 
-key = environ['GOOGLE_MAPS_API_KEY']
-
-
 class Dairy(RuleBook):
     # ROUTE_A = circular(BASE, LARS, TINA)
     # ROUTE_B = circular(BASE, LISA, KARL)
@@ -21,7 +18,7 @@ class Dairy(RuleBook):
     @rule
     def covers(self, rt=anything):
         alt = when(f=lambda x: x.alternatives())
-        return when(rt=driving_roundtrip(googlemaps.Client(key=key), BASE, LARS, TINA, BASE, LISA, KARL)) | \
+        return when(rt=driving_roundtrip(BASE, LARS, TINA, BASE, LISA, KARL)) | \
                alt(self.covers(rt))
 
     '''@rule
@@ -50,7 +47,6 @@ class Test(unittest.TestCase):
             if not bad:
                 print scenario['rt'].itinerary()
                 print '{}km, {}hours'.format(scenario['rt'].distance()/1000, scenario['rt'].duration()/3600)
-
 
 
 if __name__ == "__main__":

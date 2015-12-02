@@ -2,14 +2,26 @@ from collections import namedtuple
 from googlemaps import Client
 from frozendict import frozendict
 from itertools import permutations, islice
+from os import environ
+import googlemaps
 
 
 __author__ = 'nhc'
 
+try:
+    key = environ['GOOGLE_MAPS_API_KEY']
+    _client_object = googlemaps.Client(key=key)
 
-def driving_roundtrip(google_maps_client, *waypoints):
+    def _client_():
+        return _client_object
+except KeyError:
+    def _client_():
+        raise Exception('To use Google Maps, put your API key in the environment variable "GOOGLE_MAPS_API_KEY"')
+
+
+def driving_roundtrip(*waypoints):
     wp_list = [(wp if isinstance(wp, frozendict) else place(wp)) for wp in waypoints]
-    matrix = google_maps_matrix(google_maps_client, wp_list)
+    matrix = google_maps_matrix(wp_list)
     return Roundtrip(matrix, tuple(xrange(len(wp_list) - 1)))
 
 
@@ -54,16 +66,15 @@ class Matrix(namedtuple('Matrix', ['waypoints', 'distance', 'duration'])):
     pass
 
 
-def google_maps_matrix(google_maps_client, waypoints):
-    assert isinstance(google_maps_client, Client)
+def google_maps_matrix(waypoints):
     for waypoint in waypoints:
         assert isinstance(waypoint, frozendict)
     distance = dict()
     duration = dict()
-    response = google_maps_client.distance_matrix(origins=[wp[_ADDRESS_KEY_] for wp in waypoints],
-                                                  destinations=[wp[_ADDRESS_KEY_] for wp in waypoints],
-                                                  mode='driving',
-                                                  units='metric')
+    response = _client_().distance_matrix(origins=[wp[_ADDRESS_KEY_] for wp in waypoints],
+                                          destinations=[wp[_ADDRESS_KEY_] for wp in waypoints],
+                                          mode='driving',
+                                          units='metric')
     assert response['status'] == 'OK'
     rows = response['rows']
     assert len(rows) == len(waypoints)
