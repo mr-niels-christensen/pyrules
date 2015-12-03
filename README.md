@@ -29,9 +29,10 @@ class Dairy(RuleBook):
         return limit(milk=30)(self.roundtrip(rt))
 ```
 
-This rulebook generates wonderful facts like
-
+The original ```ROUNDTRIP``` requires a capacity of at least 38 units, so alternative routes must be explored.
+Luckily, pyrules can provide these:
 ```
+d = Dairy()
 for scenario in d.viable():
     # There will be 16 of these
     rt = scenario['rt']
