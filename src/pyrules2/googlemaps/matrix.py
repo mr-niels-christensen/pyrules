@@ -8,6 +8,7 @@ from pyrules2 import when
 
 __author__ = 'nhc'
 
+# Read Google Maps API key from environment, and create a client object if the key was there
 try:
     key = environ['GOOGLE_MAPS_API_KEY']
     _client_object = googlemaps.Client(key=key)
@@ -16,16 +17,34 @@ try:
         return _client_object
 except KeyError:
     def _client_():
-        raise Exception('To use Google Maps, put your API key in the environment variable "GOOGLE_MAPS_API_KEY"')
+        raise Exception('''To use Google Maps with pyrules, put your
+Google Maps API key in the environment variable "GOOGLE_MAPS_API_KEY"''')
 
 
+'''Used as a value in place() below.
+Indicates that the named cost is set to 0 when the place is reached.'''
 RESET = object()
 
-
+'''
+Example use: reroute(when(my_var=driving_roundtrip(*MY_PLACES)))
+Result is an expression generating scenarios where my_var is mapped
+to alternative routes to *MY_PLACES.
+Guarantee: If applied recursively, all possible alternatives will be generated.
+'''
 reroute = when(f=lambda x: x.alternatives())
 
 
 def limit(**item_limits):
+    """
+    Creates an Expression to filter scenarios based on numeric bounds.
+    Example limit(x=2, y=3)(when(x=1, y=3) | when(x=3, y=0) | when(x=-1, y=4))
+     will generate only one Scenario, with {x:1, y:3}.
+    :param item_limits: One or more limit on the form some_var=30.
+    The returned Expression will remove scenarios where some_var maps to
+    values larger than 30.
+    :return: An Expression which will filter away scenarios in which
+    one or more limit is broken, leaving the remaining unchanged.
+    """
     def filter_fun(value):
         bounds_ok = [getattr(value, item)(max) <= lim for item, lim in item_limits.items()]
         if all(bounds_ok):
@@ -34,6 +53,13 @@ def limit(**item_limits):
 
 
 def driving_roundtrip(*waypoints):
+    """
+    :param waypoints: A sequence of places created with place() below,
+    e.g. (place('New York'), place('Chicago'), place('Los Angeles'))
+    :return: An immutable object representing the roundtrip visiting
+    the given places in sequence, then returning to the first place,
+    e.g. New York -> Chicago -> Los Angeles -> New York
+    """
     wp_list = [(wp if isinstance(wp, frozendict) else place(wp)) for wp in waypoints]
     matrix = google_maps_matrix(wp_list)
     return Roundtrip(matrix, tuple(xrange(len(wp_list) - 1)))
@@ -43,6 +69,13 @@ _ADDRESS_KEY_ = '_address_'
 
 
 def place(address, **kwargs):
+    """
+    :param address: A Google Maps compatible string describing the
+    location of the place.
+    :param kwargs: Any number of named costs associated with this place,
+    e.g. tolls_usd=30, stopover_time=5000
+    :return: An immutable object representing the place.
+    """
     kwargs[_ADDRESS_KEY_] = address
     return frozendict(kwargs)
 
