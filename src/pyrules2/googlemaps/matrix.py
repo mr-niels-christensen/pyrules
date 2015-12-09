@@ -67,7 +67,7 @@ def driving_roundtrip(*waypoints):
     return Roundtrip(matrix, tuple(xrange(len(wp_list) - 1)))
 
 
-_ADDRESS_KEY_ = '_address_'
+_ADDRESS_KEY_ = object
 
 
 def place(address, **kwargs):
