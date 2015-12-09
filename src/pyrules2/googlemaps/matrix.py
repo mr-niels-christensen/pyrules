@@ -70,7 +70,7 @@ def driving_roundtrip(*waypoints):
 _ADDRESS_KEY_ = object
 
 
-def place(address, **kwargs):
+def place(address, **kwargs):  # TODO: Create class for place
     """
     :param address: A Google Maps compatible string describing the
     location of the place.
@@ -89,6 +89,8 @@ class Matrix(namedtuple('Matrix', ['waypoints', 'distance', 'duration'])):
     pass
 
 
+# TODO: Drop 'order' and just keep a tuple of Place objects
+# TODO: 'matrix' should be considered a collection of per-trip cost function
 class Roundtrip(namedtuple('Roundtrip', ['matrix', 'order'])):
     """
     A Roundtrip object represents the roundtrip visiting
