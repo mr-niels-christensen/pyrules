@@ -71,8 +71,7 @@ class MonkeyBananaRules(RuleBook):
     def can_go(self, state=anything):
         moves = when(move=MonkeyBanana.walk) | when(move=MonkeyBanana.climb) | \
                 when(move=MonkeyBanana.push) | when(move=MonkeyBanana.grasp)
-        return when(state=MonkeyBanana.initial()) | \
-               moves(self.can_go(state))
+        return when(state=MonkeyBanana.initial()) | moves(self.can_go(state))
 
 
 class Test(unittest.TestCase):

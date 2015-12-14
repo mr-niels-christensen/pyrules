@@ -1,5 +1,6 @@
 import unittest
-from pyrules2.expression import ConstantExpression, AndExpression, OrExpression, ReferenceExpression, when, FilterEqExpression, RenameExpression, bind, IterableWrappingExpression, EMPTY
+from pyrules2.expression import ConstantExpression, AndExpression, OrExpression, ReferenceExpression, when, \
+    FilterEqExpression, RenameExpression, bind, IterableWrappingExpression, EMPTY
 from pyrules2.scenario import Scenario
 
 

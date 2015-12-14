@@ -34,8 +34,7 @@ class DanishRoyalFamily(RuleBook):
                    spouse=person):
         direct = self.sibling(aunt_uncle, parent) & no(spouse)
         indirect = self.spouse(aunt_uncle, spouse) & self.sibling(spouse, parent)
-        return self.child(parent, niece_nephew) & \
-               (direct | indirect)
+        return self.child(parent, niece_nephew) & (direct | indirect)
 
 
 class Test(unittest.TestCase):
@@ -44,7 +43,9 @@ class Test(unittest.TestCase):
 
     def test_child(self):
         dicts = DanishRoyalFamily().child()
-        expected_pairs = product([DanishRoyalFamily.FRED, DanishRoyalFamily.MARY], [DanishRoyalFamily.CHRIS, DanishRoyalFamily.VINCE, DanishRoyalFamily.ISA, DanishRoyalFamily.JOSIE])
+        expected_pairs = product([DanishRoyalFamily.FRED, DanishRoyalFamily.MARY],
+                                 [DanishRoyalFamily.CHRIS, DanishRoyalFamily.VINCE,
+                                  DanishRoyalFamily.ISA, DanishRoyalFamily.JOSIE])
         self.assertSetEqual(
             set((d['parent'], d['child']) for d in dicts),
             set(expected_pairs))
@@ -52,7 +53,10 @@ class Test(unittest.TestCase):
     def test_spouse(self):
         drf = DanishRoyalFamily()
         dicts = drf.spouse()
-        expected_pairs = [(DanishRoyalFamily.JOE, DanishRoyalFamily.MARIE), (DanishRoyalFamily.MARIE, DanishRoyalFamily.JOE), (DanishRoyalFamily.MARY, DanishRoyalFamily.FRED), (DanishRoyalFamily.FRED, DanishRoyalFamily.MARY)]
+        expected_pairs = [(DanishRoyalFamily.JOE, DanishRoyalFamily.MARIE),
+                          (DanishRoyalFamily.MARIE, DanishRoyalFamily.JOE),
+                          (DanishRoyalFamily.MARY, DanishRoyalFamily.FRED),
+                          (DanishRoyalFamily.FRED, DanishRoyalFamily.MARY)]
         self.assertSetEqual(
             set((d['x'], d['y']) for d in dicts),
             set(expected_pairs))
@@ -60,7 +64,8 @@ class Test(unittest.TestCase):
     def test_sibling(self):
         drf = DanishRoyalFamily()
         dicts = drf.sibling()
-        expected_pairs = [(DanishRoyalFamily.JOE, DanishRoyalFamily.FRED), (DanishRoyalFamily.FRED, DanishRoyalFamily.JOE)]
+        expected_pairs = [(DanishRoyalFamily.JOE, DanishRoyalFamily.FRED),
+                          (DanishRoyalFamily.FRED, DanishRoyalFamily.JOE)]
         self.assertSetEqual(
             set((d['x'], d['y']) for d in dicts),
             set(expected_pairs))
@@ -68,7 +73,9 @@ class Test(unittest.TestCase):
     def test_aunt(self):
         drf = DanishRoyalFamily()
         dicts = list(drf.aunt_uncle())
-        expected_pairs = product((DanishRoyalFamily.JOE, DanishRoyalFamily.MARIE), (DanishRoyalFamily.CHRIS, DanishRoyalFamily.ISA, DanishRoyalFamily.VINCE, DanishRoyalFamily.JOSIE))
+        expected_pairs = product((DanishRoyalFamily.JOE, DanishRoyalFamily.MARIE),
+                                 (DanishRoyalFamily.CHRIS, DanishRoyalFamily.ISA,
+                                  DanishRoyalFamily.VINCE, DanishRoyalFamily.JOSIE))
         self.assertSetEqual(
             set((d['aunt_uncle'], d['niece_nephew']) for d in dicts),
             set(expected_pairs))

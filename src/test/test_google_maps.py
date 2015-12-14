@@ -1,6 +1,4 @@
-from os import environ
 import unittest
-import googlemaps
 from pyrules2.googlemaps import driving_roundtrip, place
 
 COP = place('Copenhagen, Denmark')
