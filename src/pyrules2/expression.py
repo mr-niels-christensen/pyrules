@@ -243,7 +243,7 @@ class FilterEqExpression(Expression):
                                            self.expr)
 
     def __str__(self, indent=''):
-        return '{}<{} {!r}=={}>'.format(indent, self.__class__.__name__, self.name, self.expected_value) \
+        return '{}<{} {!r}=={}>'.format(indent, self.__class__.__name__, self.key, self.expected_value) \
                + '\n'.format(self.expr.__str__(indent=indent+'  '))
 
 

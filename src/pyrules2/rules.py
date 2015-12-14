@@ -105,7 +105,7 @@ class RuleBookMethod(object):
         for scenario in bound_expression.scenarios():
             yield scenario.as_dict()
 
-    def __get__(self, instance, instancetype):
+    def __get__(self, instance, _instancetype):
         """
         Implementation of the descriptor protocol.
         :return self.__call__ with its first argument bound to the
@@ -216,7 +216,10 @@ class Generation(object):
         if self.is_full():
             return '<{} {} full {!r}>'.format(self.__class__.__name__, fixed, self.frozensets)
         else:
-            return '<{} {} missing={!r} found={!r}>'.format(self.__class__.__name__, fixed, self.keys.difference(self.frozensets.keys()), self.frozensets)
+            return '<{} {} missing={!r} found={!r}>'.format(self.__class__.__name__,
+                                                            fixed,
+                                                            self.keys.difference(self.frozensets.keys()),
+                                                            self.frozensets)
 
 
 class DIYIterable(Iterable):
