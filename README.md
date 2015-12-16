@@ -45,7 +45,7 @@ The full source of this example is here: https://github.com/mr-niels-christensen
 
 ## Architecture
 
-[Architecture diagram](docs/psk-diagram.jpg)
+![Architecture diagram](docs/psk-diagram.jpg?raw=true)
 
 You can use pyrules just like any other Python library, but pyrules also intends to support high-powered cloud deployments as per the diagram above. The basic idea is to allow parallel worker processes to crunch a problem in coordination using a task queue and an eventually consistent database like MongoDB or similar.
 On top of this, a REST API allows control of planning tasks
