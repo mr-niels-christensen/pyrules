@@ -53,18 +53,18 @@ def limit(**item_limits):
     return when(_=filter_fun)
 
 
-def driving_roundtrip(*waypoints):
+def driving_roundtrip(*places):
     """
-    :param waypoints: A sequence of Places,
+    :param places: A sequence of Places,
     e.g. (place('New York'), place('Chicago'), place('Los Angeles'))
     :return: An immutable object representing the roundtrip visiting
     the given places in sequence, then returning to the first place,
     e.g. New York -> Chicago -> Los Angeles -> New York
     All distances and durations will be based on driving.
     """
-    wp_list = [(wp if isinstance(wp, Place) else Place(wp)) for wp in waypoints]
-    matrix = google_maps_matrix(wp_list)
-    return Roundtrip(matrix, tuple(xrange(len(wp_list) - 1)))
+    roundtrip_list = list(places) + [places[0]]
+    places_tuple = tuple(p if isinstance(p, Place) else Place(p) for p in roundtrip_list)
+    return Route(places=places_tuple, trip_costs=frozendict(google_maps_matrix(places_tuple)))
 
 
 def place(address, **kwargs):
@@ -86,76 +86,29 @@ class Place(object):
             assert value is RESET or isinstance(value, Number)
         self.costs = frozendict(kwargs)
 
-
-class Matrix(namedtuple('Matrix', ['waypoints', 'distance', 'duration'])):
-    """
-    Substructure of Roundtrip, see documentation below.
-    """
-    pass
+    def __str__(self):
+        return self.address
 
 
-# TODO: Drop 'order' and just keep a tuple of Place objects
-# TODO: 'matrix' should be considered a collection of per-trip cost function
-class Roundtrip(namedtuple('Roundtrip', ['matrix', 'order'])):
-    """
-    A Roundtrip object represents the roundtrip visiting
-    a number of given Places in sequence, then returning to the first place
-    When r is a Roundtrip,
-      - r.matrix.waypoints is a tuple of Places.
-      - r.matrix.distance is a frozendict, mapping every pair of r.matrix.waypoints elements
-        to a numeric distance (in meters)
-      - r.matrix.duration is a frozendict, mapping every pair of r.matrix.waypoints elements
-        to a numeric duration (in seconds)
-      - r.order is a tuple of numbers which must be a permutation of 0, 1, ..., len(r.matrix.waypoints)-1
-        The full roundtrip of r is r.matrix.waypoints[0] + _reordered + r.matrix.waypoints[0] where
-        _reordered = [r.matrix.waypoints[i+1] for i in r.order]
-    """
-    def _origin_(self):
-        """
-        :return: The origin (and also final destination) of this Roundtrip.
-        """
-        return self.matrix.waypoints[0]
-
-    def _stops_in_canonical_order_(self):
-        """
-        :return: If roundtrip is A->B->C->A result will be [B,C].
-        """
-        return self.matrix.waypoints[1:]
-
-    def alternatives(self):
-        """
-        Generates every alternative route for this Roundtrip.
-        :return: Generator yielding Roundtrips with the intermediate stops reordered.
-        """
-        for p in islice(permutations(xrange(len(self.matrix.waypoints) - 1)), 2, None):
-            yield Roundtrip(self.matrix, p)
-
-    def itinerary(self):
-        """
-        :return: The full roundtrip as a list, e.g. [A, B, C, A]
-        """
-        sico = self._stops_in_canonical_order_()
-        return [self._origin_()] + [sico[i] for i in self.order] + [self._origin_()]
-
+class Route(namedtuple('Route', ['places', 'trip_costs'])):
     def distance(self):
         """
         :return: The total distance of this Roundtrip, in meters.
         """
-        return sum([self.matrix.distance[trip] for trip in self.trips()])
-
-    def trips(self):
-        """
-        :return: A list of pairs representing all legs of this Roundtrip.
-        E.g. if the roundtrip is A->B->C->A the result is [(A,B), (B,C), (C,A)]
-        """
-        itinerary = self.itinerary()
-        return zip(itinerary[:-1], itinerary[1:])
+        return sum([self.trip_costs['distance'][trip] for trip in self.legs()])
 
     def duration(self):
         """
-        :return: The total duration of this Roundtrip, in meters.
+        :return: The total duration of this Roundtrip, in seconds.
         """
-        return sum([self.matrix.duration[trip] for trip in self.trips()])
+        return sum([self.trip_costs['duration'][trip] for trip in self.legs()])
+
+    def legs(self):
+        """
+        :return: A list of pairs representing all legs of this Route.
+        E.g. if the Route is A->B->C->A the result is [(A,B), (B,C), (C,A)]
+        """
+        return zip(self.places[:-1], self.places[1:])
 
     def __getattr__(self, cost_name):
         """
@@ -170,51 +123,62 @@ class Roundtrip(namedtuple('Roundtrip', ['matrix', 'order'])):
     def _compute_between_resets(self, cost_name):
         """
         :param cost_name: Name of a cost, e.g. 'fuel'
-        :return: Generator yielding e.g. sum(p.fuel for p in subtrip) for subtrip in r.split(p.fuel==RESET)
+        :return: Generator yielding sum(p.fuel for p in subtrip) for subtrip in r.split(p.fuel==RESET)
         """
         current_subtrip = list()
-        for stop in self.itinerary():
+        for stop in self.places:
             value = stop.costs[cost_name]
             if value == RESET:
                 if len(current_subtrip) > 0:
                     yield sum(current_subtrip)
                     current_subtrip = []
             else:
-                assert isinstance(value, Number), 'Not a number: {}[{}]=={}'.format(stop, cost_name, value)
                 current_subtrip.append(value)
         if len(current_subtrip) > 0:
             yield sum(current_subtrip)
 
     def __str__(self):
-        return '{} km: {}'.format(self.distance() / 1000, ' --> '.join(self.itinerary()))
+        return '{} km: {}'.format(self.distance() / 1000, ' --> '.join(str(p) for p in self.places))
+
+    def alternatives(self):
+        """
+        Generates every alternative route for this Route.
+        :return: Generator yielding Routes with the intermediate stops reordered.
+        """
+        origin = self.places[0]
+        intermediate_stops = self.places[1:-1]
+        destination = self.places[-1]
+        for alt in islice(permutations(intermediate_stops), 2, None):
+            yield Route(places=tuple([origin] + list(alt) + [destination]), trip_costs=self.trip_costs)
 
 
-def google_maps_matrix(waypoints):
+def google_maps_matrix(places):
     """
     Looks up distances and durations on Google Maps.
-    :param waypoints: An iterable of Places.
-    :return: A Matrix for a Roundtrip based on the given waypoints.
+    :param places: An iterable of Places.
+    :return: A dict mapping each of 'duration' and 'distance' to
+     a frozendict mapping Place pairs to relevant values.
     """
-    for waypoint in waypoints:
+    for waypoint in places:
         assert isinstance(waypoint, Place)
     distance = dict()
     duration = dict()
     # Call Google Maps API
-    response = _client_().distance_matrix(origins=[wp.address for wp in waypoints],
-                                          destinations=[wp.address for wp in waypoints],
+    response = _client_().distance_matrix(origins=[place.address for place in places],
+                                          destinations=[place.address for place in places],
                                           mode='driving',
                                           units='metric')
     # Verify and parse response
     assert response['status'] == 'OK'
     rows = response['rows']
-    assert len(rows) == len(waypoints)
+    assert len(rows) == len(places)
     # Populate the dicts distance and duration
-    for row, origin in zip(rows, waypoints):
+    for row, origin in zip(rows, places):
         row_elements = row['elements']  # There's also data about exact addresses used
-        assert len(row_elements) == len(waypoints)
-        for element, destination in zip(row_elements, waypoints):
+        assert len(row_elements) == len(places)
+        for element, destination in zip(row_elements, places):
             assert element['status'] == 'OK'
             duration[(origin, destination)] = element['duration']['value']
             distance[(origin, destination)] = element['distance']['value']
-    # Construct and return a Matrix object
-    return Matrix(tuple(waypoints), frozendict(distance), frozendict(duration))
+    # Construct and return the dict
+    return {'distance': frozendict(distance), 'duration': frozendict(duration)}

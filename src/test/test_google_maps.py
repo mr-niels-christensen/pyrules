@@ -13,9 +13,9 @@ class Test(unittest.TestCase):
     def test_roundtrip(self):
         r = driving_roundtrip(COP, MAD, BER, LIS)
         self.assertGreater(r.distance(), 10000 * KM)  # Bad
-        min_dist, itinerary = min(((a.distance(), a.itinerary()) for a in r.alternatives()))
+        min_dist, itinerary = min(((a.distance(), a.places) for a in r.alternatives()))
         self.assertLess(min_dist, 6500 * KM)  # Good
-        self.assertListEqual([COP, LIS, MAD, BER, COP], itinerary)
+        self.assertListEqual([COP, LIS, MAD, BER, COP], list(itinerary))
 
 
 if __name__ == "__main__":
