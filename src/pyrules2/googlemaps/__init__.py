@@ -1,4 +1,4 @@
-from matrix import driving_roundtrip, place, RESET, reroute, limit
+from matrix import Driving, place, RESET, reroute, limit
 
 __author__ = 'nhc'
 

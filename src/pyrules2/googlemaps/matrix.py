@@ -53,18 +53,20 @@ def limit(**item_limits):
     return when(_=filter_fun)
 
 
-def driving_roundtrip(*places):
-    """
-    :param places: A sequence of Places,
-    e.g. (place('New York'), place('Chicago'), place('Los Angeles'))
-    :return: An immutable object representing the roundtrip visiting
-    the given places in sequence, then returning to the first place,
-    e.g. New York -> Chicago -> Los Angeles -> New York
-    All distances and durations will be based on driving.
-    """
-    roundtrip_list = list(places) + [places[0]]
-    places_tuple = tuple(p if isinstance(p, Place) else Place(p) for p in roundtrip_list)
-    return Route(places=places_tuple, leg_costs=frozendict(google_maps_matrix(places_tuple)))
+class Driving(object):
+    @staticmethod
+    def route(*places):
+        """
+        :param places: A sequence of Places,
+        e.g. (place('New York'), place('Chicago'), place('Los Angeles'), place('New York'))
+        :return: An immutable object representing the route visiting
+        the given places in sequence,
+        e.g. New York -> Chicago -> Los Angeles -> New York
+        All distances and durations will be based on driving.
+        """
+        places_tuple = tuple(p if isinstance(p, Place) else Place(p) for p in places)
+        leg_costs = frozendict(_google_maps_leg_costs('driving', places_tuple))
+        return Route(places=places_tuple, leg_costs=leg_costs)
 
 
 def place(address, **kwargs):
@@ -152,9 +154,10 @@ class Route(namedtuple('Route', ['places', 'leg_costs'])):
             yield Route(places=tuple([origin] + list(alt) + [destination]), leg_costs=self.leg_costs)
 
 
-def google_maps_matrix(places):
+def _google_maps_leg_costs(mode, places):
     """
     Looks up distances and durations on Google Maps.
+    :param mode: A Google Maps mode, e.g. 'driving'.
     :param places: An iterable of Places.
     :return: A dict mapping each of 'duration' and 'distance' to
      a frozendict mapping Place pairs to relevant values.
@@ -166,7 +169,7 @@ def google_maps_matrix(places):
     # Call Google Maps API
     response = _client_().distance_matrix(origins=[p.address for p in places],
                                           destinations=[p.address for p in places],
-                                          mode='driving',
+                                          mode=mode,
                                           units='metric')
     # Verify and parse response
     assert response['status'] == 'OK'

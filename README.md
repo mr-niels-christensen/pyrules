@@ -12,7 +12,7 @@ LARS = place('Snedsted, Denmark', milk=18)
 TINA = place('Bedsted Thy, Denmark', milk=20)
 LISA = place('Redsted, Denmark', milk=10)
 KARL = place('Rakkeby, Denmark', milk=6)
-ROUNDTRIP = driving_roundtrip(BASE, LARS, TINA, BASE, LISA, KARL)
+ROUNDTRIP = Driving.route(BASE, LARS, TINA, BASE, LISA, KARL, BASE)
 ```
 
 Until today, the schedule has been as indicated in ```ROUNDTRIP```.
