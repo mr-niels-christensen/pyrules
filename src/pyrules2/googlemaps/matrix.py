@@ -46,7 +46,7 @@ def limit(**item_limits):
     one or more limit is broken, leaving the remaining unchanged.
     """
     def filter_fun(value):
-        bounds_ok = [getattr(value, item)(max) <= lim for item, lim in item_limits.items()]
+        bounds_ok = [getattr(value, cost_name) <= lim for cost_name, lim in item_limits.items()]
         # Yield either 0 or 1 results
         if all(bounds_ok):
             yield value
@@ -161,24 +161,11 @@ class Roundtrip(namedtuple('Roundtrip', ['matrix', 'order'])):
         """
         Convenience method for computing one cost of this Roundtrip.
         Example: If every place in the Roundtrip r has a cost named 'fuel',
-        r.fuel(max) will return max(sum(p.fuel for p in subtrip) for subtrip in r.split(p.fuel==RESET))
+        r.fuel will return max(sum(p.fuel for p in subtrip) for subtrip in r.split(p.fuel==RESET))
         :param cost_name: The name of the cost, e.g. 'fuel'
-        :return: A function which, given either max or sum, returns the computed cost.
+        :return: the computed cost.
         """
-        def f(sum_or_max):
-            # TODO: Does sum make sense? Wouldn't this be the same for any route?
-            assert sum_or_max in [sum, max]
-            return self._compute(sum_or_max, cost_name)
-        return f
-
-    def _compute(self, sum_or_max, cost_name):
-        """
-
-        :param sum_or_max: Must be builtin functions sum or max
-        :param cost_name: Name of a cost, e.g. 'fuel'
-        :return: Computed cost for this Roundtrip.
-        """
-        return sum_or_max(self._compute_between_resets(cost_name))
+        return max(self._compute_between_resets(cost_name))
 
     def _compute_between_resets(self, cost_name):
         """

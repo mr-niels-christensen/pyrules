@@ -36,7 +36,7 @@ d = Dairy()
 for scenario in d.viable():
     # There will be 16 of these
     rt = scenario['rt']
-    print rt.milk(max) # Will be 28 or 30
+    print rt.milk # Will be 28 or 30
     print rt.distance() # Will be around 380km, in meters
     print rt.duration() # Will be around 5 hours, in seconds
 ```
