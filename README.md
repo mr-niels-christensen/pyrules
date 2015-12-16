@@ -31,7 +31,7 @@ class Dairy(RuleBook):
 
 The original ```ROUNDTRIP``` requires a capacity of at least 38 units, so alternative routes must be explored.
 Luckily, pyrules can provide these:
-```
+```python
 d = Dairy()
 for scenario in d.viable():
     # There will be 16 of these
