@@ -68,11 +68,12 @@ def driving_roundtrip(*places):
 
 
 def place(address, **kwargs):
-    return Place(address, **kwargs)
+    return Place.create(address, **kwargs)
 
 
-class Place(object):
-    def __init__(self, address, **kwargs):
+class Place(namedtuple('Place', ['address', 'costs'])):
+    @staticmethod
+    def create(address, **kwargs):
         """
         :param address: A Google Maps compatible string describing the
         location of the place.
@@ -81,10 +82,9 @@ class Place(object):
         :return: An immutable object representing the place.
         """
         assert isinstance(address, basestring)
-        self.address = address
         for value in kwargs.itervalues():
             assert value is RESET or isinstance(value, Number)
-        self.costs = frozendict(kwargs)
+        return Place(address, frozendict(kwargs))
 
     def __str__(self):
         return self.address
