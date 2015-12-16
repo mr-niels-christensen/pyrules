@@ -356,7 +356,3 @@ def rule(func):
     """
     func.pyrules = True
     return func
-
-
-
-

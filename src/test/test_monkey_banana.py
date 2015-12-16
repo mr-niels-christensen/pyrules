@@ -70,7 +70,7 @@ class MonkeyBananaRules(RuleBook):
     @rule
     def can_go(self, state=anything):
         moves = when(move=MonkeyBanana.walk) | when(move=MonkeyBanana.climb) | \
-                when(move=MonkeyBanana.push) | when(move=MonkeyBanana.grasp)
+            when(move=MonkeyBanana.push) | when(move=MonkeyBanana.grasp)
         return when(state=MonkeyBanana.initial()) | moves(self.can_go(state))
 
 

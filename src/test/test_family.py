@@ -4,7 +4,7 @@ from itertools import product
 
 '''Example: Family relations
 
-   In this example, we're deducing family relations from a 
+   In this example, we're deducing family relations from a
    set of basic facts about marriage and offspring.
 '''
 
