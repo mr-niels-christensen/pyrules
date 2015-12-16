@@ -64,10 +64,17 @@ def driving_roundtrip(*places):
     """
     roundtrip_list = list(places) + [places[0]]
     places_tuple = tuple(p if isinstance(p, Place) else Place(p) for p in roundtrip_list)
-    return Route(places=places_tuple, trip_costs=frozendict(google_maps_matrix(places_tuple)))
+    return Route(places=places_tuple, leg_costs=frozendict(google_maps_matrix(places_tuple)))
 
 
 def place(address, **kwargs):
+    """
+    :param address: A Google Maps compatible string describing the
+    location of the place.
+    :param kwargs: Any number of named costs associated with this place,
+    e.g. tolls_usd=30, stopover_time=5000
+    :return: An immutable object representing the place.
+    """
     return Place.create(address, **kwargs)
 
 
@@ -90,18 +97,18 @@ class Place(namedtuple('Place', ['address', 'costs'])):
         return self.address
 
 
-class Route(namedtuple('Route', ['places', 'trip_costs'])):
+class Route(namedtuple('Route', ['places', 'leg_costs'])):
     def distance(self):
         """
         :return: The total distance of this Roundtrip, in meters.
         """
-        return sum([self.trip_costs['distance'][trip] for trip in self.legs()])
+        return sum([self.leg_costs['distance'][leg] for leg in self.legs()])
 
     def duration(self):
         """
         :return: The total duration of this Roundtrip, in seconds.
         """
-        return sum([self.trip_costs['duration'][trip] for trip in self.legs()])
+        return sum([self.leg_costs['duration'][leg] for leg in self.legs()])
 
     def legs(self):
         """
@@ -112,8 +119,8 @@ class Route(namedtuple('Route', ['places', 'trip_costs'])):
 
     def __getattr__(self, cost_name):
         """
-        Convenience method for computing one cost of this Roundtrip.
-        Example: If every place in the Roundtrip r has a cost named 'fuel',
+        Convenience method for computing one cost of this Route.
+        Example: If every place in the Route r has a cost named 'fuel',
         r.fuel will return max(sum(p.fuel for p in subtrip) for subtrip in r.split(p.fuel==RESET))
         :param cost_name: The name of the cost, e.g. 'fuel'
         :return: the computed cost.
@@ -149,7 +156,7 @@ class Route(namedtuple('Route', ['places', 'trip_costs'])):
         intermediate_stops = self.places[1:-1]
         destination = self.places[-1]
         for alt in islice(permutations(intermediate_stops), 2, None):
-            yield Route(places=tuple([origin] + list(alt) + [destination]), trip_costs=self.trip_costs)
+            yield Route(places=tuple([origin] + list(alt) + [destination]), leg_costs=self.leg_costs)
 
 
 def google_maps_matrix(places):
@@ -164,8 +171,8 @@ def google_maps_matrix(places):
     distance = dict()
     duration = dict()
     # Call Google Maps API
-    response = _client_().distance_matrix(origins=[place.address for place in places],
-                                          destinations=[place.address for place in places],
+    response = _client_().distance_matrix(origins=[p.address for p in places],
+                                          destinations=[p.address for p in places],
                                           mode='driving',
                                           units='metric')
     # Verify and parse response
