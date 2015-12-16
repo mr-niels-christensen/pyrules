@@ -55,31 +55,36 @@ def limit(**item_limits):
 
 def driving_roundtrip(*waypoints):
     """
-    :param waypoints: A sequence of places created with place() below,
+    :param waypoints: A sequence of Places,
     e.g. (place('New York'), place('Chicago'), place('Los Angeles'))
     :return: An immutable object representing the roundtrip visiting
     the given places in sequence, then returning to the first place,
     e.g. New York -> Chicago -> Los Angeles -> New York
     All distances and durations will be based on driving.
     """
-    wp_list = [(wp if isinstance(wp, frozendict) else place(wp)) for wp in waypoints]
+    wp_list = [(wp if isinstance(wp, Place) else Place(wp)) for wp in waypoints]
     matrix = google_maps_matrix(wp_list)
     return Roundtrip(matrix, tuple(xrange(len(wp_list) - 1)))
 
 
-_ADDRESS_KEY_ = object
+def place(address, **kwargs):
+    return Place(address, **kwargs)
 
 
-def place(address, **kwargs):  # TODO: Create class for place
-    """
-    :param address: A Google Maps compatible string describing the
-    location of the place.
-    :param kwargs: Any number of named costs associated with this place,
-    e.g. tolls_usd=30, stopover_time=5000
-    :return: An immutable object representing the place.
-    """
-    kwargs[_ADDRESS_KEY_] = address
-    return frozendict(kwargs)
+class Place(object):
+    def __init__(self, address, **kwargs):
+        """
+        :param address: A Google Maps compatible string describing the
+        location of the place.
+        :param kwargs: Any number of named costs associated with this place,
+        e.g. tolls_usd=30, stopover_time=5000
+        :return: An immutable object representing the place.
+        """
+        assert isinstance(address, basestring)
+        self.address = address
+        for value in kwargs.itervalues():
+            assert value is RESET or isinstance(value, Number)
+        self.costs = frozendict(kwargs)
 
 
 class Matrix(namedtuple('Matrix', ['waypoints', 'distance', 'duration'])):
@@ -94,9 +99,9 @@ class Matrix(namedtuple('Matrix', ['waypoints', 'distance', 'duration'])):
 class Roundtrip(namedtuple('Roundtrip', ['matrix', 'order'])):
     """
     A Roundtrip object represents the roundtrip visiting
-    a number of given places in sequence, then returning to the first place
+    a number of given Places in sequence, then returning to the first place
     When r is a Roundtrip,
-      - r.matrix.waypoints is a tuple of places, each place the output of place() above.
+      - r.matrix.waypoints is a tuple of Places.
       - r.matrix.distance is a frozendict, mapping every pair of r.matrix.waypoints elements
         to a numeric distance (in meters)
       - r.matrix.duration is a frozendict, mapping every pair of r.matrix.waypoints elements
@@ -152,43 +157,43 @@ class Roundtrip(namedtuple('Roundtrip', ['matrix', 'order'])):
         """
         return sum([self.matrix.duration[trip] for trip in self.trips()])
 
-    def __getattr__(self, cost):
+    def __getattr__(self, cost_name):
         """
         Convenience method for computing one cost of this Roundtrip.
         Example: If every place in the Roundtrip r has a cost named 'fuel',
         r.fuel(max) will return max(sum(p.fuel for p in subtrip) for subtrip in r.split(p.fuel==RESET))
-        :param cost: The name of the cost, e.g. 'fuel'
+        :param cost_name: The name of the cost, e.g. 'fuel'
         :return: A function which, given either max or sum, returns the computed cost.
         """
         def f(sum_or_max):
             # TODO: Does sum make sense? Wouldn't this be the same for any route?
             assert sum_or_max in [sum, max]
-            return self._compute(sum_or_max, cost)
+            return self._compute(sum_or_max, cost_name)
         return f
 
-    def _compute(self, sum_or_max, cost):
+    def _compute(self, sum_or_max, cost_name):
         """
 
         :param sum_or_max: Must be builtin functions sum or max
-        :param cost: Name of a cost
+        :param cost_name: Name of a cost, e.g. 'fuel'
         :return: Computed cost for this Roundtrip.
         """
-        return sum_or_max(self._compute_between_resets(cost))
+        return sum_or_max(self._compute_between_resets(cost_name))
 
-    def _compute_between_resets(self, cost):
+    def _compute_between_resets(self, cost_name):
         """
-        :param cost: Name of a cost.
+        :param cost_name: Name of a cost, e.g. 'fuel'
         :return: Generator yielding e.g. sum(p.fuel for p in subtrip) for subtrip in r.split(p.fuel==RESET)
         """
         current_subtrip = list()
         for stop in self.itinerary():
-            value = stop[cost]
+            value = stop.costs[cost_name]
             if value == RESET:
                 if len(current_subtrip) > 0:
                     yield sum(current_subtrip)
                     current_subtrip = []
             else:
-                assert isinstance(value, Number), 'Not a number: {}[{}]=={}'.format(stop, cost, value)
+                assert isinstance(value, Number), 'Not a number: {}[{}]=={}'.format(stop, cost_name, value)
                 current_subtrip.append(value)
         if len(current_subtrip) > 0:
             yield sum(current_subtrip)
@@ -200,16 +205,16 @@ class Roundtrip(namedtuple('Roundtrip', ['matrix', 'order'])):
 def google_maps_matrix(waypoints):
     """
     Looks up distances and durations on Google Maps.
-    :param waypoints: An iterable of places, each one returned from place() above.
+    :param waypoints: An iterable of Places.
     :return: A Matrix for a Roundtrip based on the given waypoints.
     """
     for waypoint in waypoints:
-        assert isinstance(waypoint, frozendict)
+        assert isinstance(waypoint, Place)
     distance = dict()
     duration = dict()
     # Call Google Maps API
-    response = _client_().distance_matrix(origins=[wp[_ADDRESS_KEY_] for wp in waypoints],
-                                          destinations=[wp[_ADDRESS_KEY_] for wp in waypoints],
+    response = _client_().distance_matrix(origins=[wp.address for wp in waypoints],
+                                          destinations=[wp.address for wp in waypoints],
                                           mode='driving',
                                           units='metric')
     # Verify and parse response
