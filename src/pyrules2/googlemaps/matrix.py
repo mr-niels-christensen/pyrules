@@ -98,18 +98,6 @@ class Place(namedtuple('Place', ['address', 'costs'])):
 
 
 class Route(namedtuple('Route', ['places', 'leg_costs'])):
-    def distance(self):
-        """
-        :return: The total distance of this Roundtrip, in meters.
-        """
-        return sum([self.leg_costs['distance'][leg] for leg in self.legs()])
-
-    def duration(self):
-        """
-        :return: The total duration of this Roundtrip, in seconds.
-        """
-        return sum([self.leg_costs['duration'][leg] for leg in self.legs()])
-
     def legs(self):
         """
         :return: A list of pairs representing all legs of this Route.
@@ -120,12 +108,17 @@ class Route(namedtuple('Route', ['places', 'leg_costs'])):
     def __getattr__(self, cost_name):
         """
         Convenience method for computing one cost of this Route.
+        Example: If every leg in the Route r has a cost named 'distance',
+        r.fuel will return sum(l.distance for l in r.legs())
         Example: If every place in the Route r has a cost named 'fuel',
         r.fuel will return max(sum(p.fuel for p in subtrip) for subtrip in r.split(p.fuel==RESET))
         :param cost_name: The name of the cost, e.g. 'fuel'
         :return: the computed cost.
         """
-        return max(self._compute_between_resets(cost_name))
+        if cost_name in self.leg_costs:
+            return sum([self.leg_costs[cost_name][leg] for leg in self.legs()])
+        else:  # Must be per-Place cost
+            return max(self._compute_between_resets(cost_name))
 
     def _compute_between_resets(self, cost_name):
         """
