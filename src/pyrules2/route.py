@@ -50,6 +50,15 @@ def place(address, **kwargs):
 
 
 class Place(namedtuple('Place', ['address', 'costs'])):
+    """
+    Represents one particular stop on a Route.
+    When p is a Place,
+      - p.address should be a String that Google Maps knows the location of, e.g. "New York".
+      - p.costs should be a frozendict mapping from cost name to cost value.
+        The cost value must be a number of the value RESET.
+        Example: frozendict({'visit_hours': 42, 'coffee': RESET})
+    """
+
     @staticmethod
     def create(address, **kwargs):
         """
@@ -69,6 +78,20 @@ class Place(namedtuple('Place', ['address', 'costs'])):
 
 
 class Route(namedtuple('Route', ['places', 'leg_costs'])):
+    """
+    Represents a sequence of Places to be visited in order.
+    The representation includes costs associated with moving from one Place to the next,
+    like distance and duration.
+    When r is a Route,
+      - r.places should be a tuple of Places, e.g. (place('New York'), place('Chicago'), place('Boston'))
+      - r.leg_costs should be frozendict mapping from cost name to cost function.
+        The cost function should itself be a frozendict mapping each pair of Places in r.places
+        to a number.
+        Example r.leg_costs:
+          frozendict({'distance': di, 'duration': du}), where
+          di = du = frozendict({(A,B): 7, (B,A): 8}) where r.places is (A,B)
+    """
+
     def legs(self):
         """
         :return: A list of pairs representing all legs of this Route.
