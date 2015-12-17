@@ -75,9 +75,6 @@ class MonkeyBananaRules(RuleBook):
 
 
 class Test(unittest.TestCase):
-    def test_cls(self):
-        print MonkeyBananaRules
-
     def test_can_go(self):
         mb = MonkeyBananaRules()
         for s in mb.can_go():

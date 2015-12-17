@@ -8,7 +8,7 @@ __author__ = 'nhc'
 
 '''Used as a value in place() below.
 Indicates that the named cost is set to 0 when the place is reached.'''
-RESET = object()
+RESET = 'RESET'
 
 '''
 Example use: reroute(when(my_var=driving_roundtrip(*MY_PLACES)))
@@ -61,11 +61,11 @@ class Place(namedtuple('Place', ['address', 'costs'])):
         """
         assert isinstance(address, basestring)
         for value in kwargs.itervalues():
-            assert value is RESET or isinstance(value, Number)
+            assert value == RESET or isinstance(value, Number)
         return Place(address, frozendict(kwargs))
 
     def __str__(self):
-        return self.address
+        return '<{}>'.format(self.address)
 
 
 class Route(namedtuple('Route', ['places', 'leg_costs'])):
@@ -109,7 +109,7 @@ class Route(namedtuple('Route', ['places', 'leg_costs'])):
             yield sum(current_subtrip)
 
     def __str__(self):
-        return '{} km: {}'.format(self.distance() / 1000, ' --> '.join(str(p) for p in self.places))
+        return '{} km: {}'.format(self.distance / 1000, ' --> '.join(str(p) for p in self.places))
 
     def alternatives(self):
         """

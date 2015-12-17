@@ -38,9 +38,6 @@ class DanishRoyalFamily(RuleBook):
 
 
 class Test(unittest.TestCase):
-    def test_cls(self):
-        print DanishRoyalFamily
-
     def test_child(self):
         dicts = DanishRoyalFamily().child()
         expected_pairs = product([DanishRoyalFamily.FRED, DanishRoyalFamily.MARY],
