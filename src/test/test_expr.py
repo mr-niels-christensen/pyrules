@@ -109,7 +109,7 @@ class Test(unittest.TestCase):
         self.assertEqual(1, len(r))
         d = r[0]
         for index, letter in enumerate('abcdef'):
-            self.assertEquals(index, d[letter])
+            self.assertEqual(index, d[letter])
         self.assertEqual(6, len(d))
         # Same dict twice
         o = AndExpression(ConstantExpression({'a': 0}), ConstantExpression({'a': 0}))

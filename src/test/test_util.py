@@ -7,7 +7,7 @@ class Test(unittest.TestCase):
     def test_finite_product(self):
         self._test_product([])
         for num_iterables in [1, 2, 5]:
-            iterables = [range(i*i) for i in range(1, num_iterables+1)]
+            iterables = [list(range(i*i)) for i in range(1, num_iterables+1)]
             self._test_product(iterables)
 
     def _test_product(self, case):

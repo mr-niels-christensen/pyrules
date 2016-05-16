@@ -17,7 +17,7 @@ class Scenario(frozenset):
         :return: The created frozenset
         """
         assert isinstance(d, dict)
-        return super(Scenario, cls).__new__(cls, d.items())
+        return super(Scenario, cls).__new__(cls, list(d.items()))
 
     def get_only_item(self):
         """

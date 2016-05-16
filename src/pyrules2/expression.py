@@ -282,7 +282,7 @@ class RenameExpression(Expression):
             else:
                 try:
                     d = scenario.as_dict()
-                    new_scenarios = [Scenario({new_key: d[old_key]}) for old_key, new_key in self.map.iteritems()]
+                    new_scenarios = [Scenario({new_key: d[old_key]}) for old_key, new_key in self.map.items()]
                     yield Scenario.unite(new_scenarios)
                 except AssertionError:
                     pass
@@ -316,7 +316,7 @@ def bind(callee_expr, callee_key_to_constant, callee_key_to_caller_key):
     assert isinstance(callee_key_to_constant, dict)
     assert isinstance(callee_key_to_caller_key, dict)
     result = callee_expr
-    for callee_key, constant in callee_key_to_constant.iteritems():
+    for callee_key, constant in callee_key_to_constant.items():
         result = FilterEqExpression(callee_key, constant, result)
     return RenameExpression(result, **callee_key_to_caller_key)
 

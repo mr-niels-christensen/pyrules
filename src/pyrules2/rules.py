@@ -1,7 +1,7 @@
 import inspect
 from pyrules2.expression import ConstantExpression, Expression, bind, IterableWrappingExpression, EMPTY
 from functools import partial
-from itertools import chain, imap
+from itertools import chain
 from collections import Iterable
 
 
@@ -48,7 +48,7 @@ def _bind_args_to_rule(rule_method, args, expression):
     del call_args['self']
     const_bindings = {}
     var_bindings = {}
-    for arg_name, arg_value in call_args.iteritems():
+    for arg_name, arg_value in call_args.items():
         if isinstance(arg_value, Var):
             var_bindings[arg_name] = arg_value.variable_name
         elif arg_value is ANYTHING:
@@ -124,7 +124,7 @@ class RuleBookMeta(type):
         be assigned to an object containing the variable name.
     """
     def __new__(mcs, name, bases, class_dict):
-        rules = {key: value for key, value in class_dict.items() if hasattr(value, 'pyrules')}
+        rules = {key: value for key, value in list(class_dict.items()) if hasattr(value, 'pyrules')}
         class_dict['__original_rules__'] = rules
         for key in rules:
             class_dict[key] = RuleBookMethod(key)
@@ -218,7 +218,7 @@ class Generation(object):
         else:
             return '<{} {} missing={!r} found={!r}>'.format(self.__class__.__name__,
                                                             fixed,
-                                                            self.keys.difference(self.frozensets.keys()),
+                                                            self.keys.difference(list(self.frozensets.keys())),
                                                             self.frozensets)
 
 
@@ -235,13 +235,12 @@ class DIYIterable(Iterable):
         return self.my_iter()
 
 
-class RuleBook(object):
+class RuleBook(object, metaclass=RuleBookMeta):
     """
     A RuleBook combines a number of rules, i.e. methods decorated with @rule,
     and answers queries to these. When an instance of the RuleBook is
     constructed, every @rule is parsed
     """
-    __metaclass__ = RuleBookMeta
 
     def __init__(self):
         """
@@ -249,7 +248,7 @@ class RuleBook(object):
         iteration (see Generation above).
         """
         self.rules = self.__class__.__original_rules__.copy()
-        gen0 = Generation(self.rules.keys())
+        gen0 = Generation(list(self.rules.keys()))
         gen0.fill(lambda key: EMPTY)
         self.generations = [gen0]
 
@@ -264,7 +263,7 @@ class RuleBook(object):
         # Define an __iter__ function that calls _expressions_for, extracts scenarios and chains these
         def get_scenario_iterator():
             expression_iterator = self._expressions_for(key)
-            scenario_iterator = chain.from_iterable(imap(lambda e: e.scenarios(), expression_iterator))
+            scenario_iterator = chain.from_iterable(map(lambda e: e.scenarios(), expression_iterator))
             return scenario_iterator
         # Make the __iter__ function into an Expression via an Iterable
         scenario_iterable = DIYIterable(get_scenario_iterator)
@@ -301,7 +300,7 @@ class RuleBook(object):
         to self.generations.
         """
         last_gen = self.generations[-1]
-        next_gen = Generation(self.rules.keys())
+        next_gen = Generation(list(self.rules.keys()))
         next_gen.fill(lambda key: self.parse(key, last_gen.as_environment()))
         if last_gen == next_gen:
             last_gen.fixed_point = True
@@ -342,7 +341,7 @@ class RuleBook(object):
         :param key: The name of a rule in this RuleBook, e.g. 'f'.
         """
         for i, gen in enumerate(self.generations):
-            print '{}@{}: {}'.format(key, i, set(gen.get_expression(key).scenarios()))
+            print('{}@{}: {}'.format(key, i, set(gen.get_expression(key).scenarios())))
 
 
 def rule(func):

@@ -1,5 +1,5 @@
 from collections import deque
-from itertools import repeat, izip, count, product
+from itertools import repeat, count, product
 
 __author__ = 'nhc'
 
@@ -8,7 +8,7 @@ def round_robin(*iterables):
     """Splices the given iterables fairly, see
        http://bugs.python.org/issue1757395
     """
-    pending = deque(iter(i).next for i in reversed(iterables))
+    pending = deque(iter(i).__next__ for i in reversed(iterables))
     rotate, pop, _StopIteration = pending.rotate, pending.pop, StopIteration
     while pending:
         try:
@@ -30,9 +30,9 @@ def _enumerated_fair_iterator(iterators):
     :param iterators: Any number of iterators, finite or infinite.
     :return: The combined iterator.
     """
-    indexed_iterators = [izip(repeat(index), g) for index, g in enumerate(iterators)]
+    indexed_iterators = [zip(repeat(index), g) for index, g in enumerate(iterators)]
     fair_iterators = round_robin(*indexed_iterators)
-    enumerated_fair_iterators = izip(count(1), fair_iterators)
+    enumerated_fair_iterators = zip(count(1), fair_iterators)
     return enumerated_fair_iterators
 
 

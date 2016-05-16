@@ -31,7 +31,7 @@ def limit(**item_limits):
     one or more limit is broken, leaving the remaining unchanged.
     """
     def filter_fun(value):
-        bounds_ok = [getattr(value, cost_name) <= lim for cost_name, lim in item_limits.items()]
+        bounds_ok = [getattr(value, cost_name) <= lim for cost_name, lim in list(item_limits.items())]
         # Yield either 0 or 1 results
         if all(bounds_ok):
             yield value
@@ -68,8 +68,8 @@ class Place(namedtuple('Place', ['address', 'costs'])):
         e.g. tolls_usd=30, stopover_time=5000
         :return: An immutable object representing the place.
         """
-        assert isinstance(address, basestring)
-        for value in kwargs.itervalues():
+        assert isinstance(address, str)
+        for value in kwargs.values():
             assert value == RESET or isinstance(value, Number)
         return Place(address, frozendict(kwargs))
 
@@ -97,7 +97,7 @@ class Route(namedtuple('Route', ['places', 'leg_costs'])):
         :return: A list of pairs representing all legs of this Route.
         E.g. if the Route is A->B->C->A the result is [(A,B), (B,C), (C,A)]
         """
-        return zip(self.places[:-1], self.places[1:])
+        return list(zip(self.places[:-1], self.places[1:]))
 
     def __getattr__(self, cost_name):
         """
