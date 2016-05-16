@@ -61,3 +61,5 @@ It's not, but it can do a few Prolog-like things.
 For example, it can solve the Monkey-Banana puzzle from Ivan Bratko's book "Prolog
 programming for artificial intelligence".
 See https://github.com/mr-niels-christensen/pyrules/blob/master/src/test/test_monkey_banana.py
+
+[![Build Status](https://travis-ci.org/mr-niels-christensen/pyrules.svg?branch=master)](https://travis-ci.org/mr-niels-christensen/pyrules)
