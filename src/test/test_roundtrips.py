@@ -26,7 +26,7 @@ class Test(unittest.TestCase):
         for scenario in d.viable():
             rt = scenario['rt']
             self.assertIn(rt.milk, [28, 30])
-            self.assertLess(375000, rt.distance)
+            self.assertLess(370000, rt.distance)
             self.assertLess(rt.distance, 382000)
             self.assertLess(5*3600, rt.duration)
             self.assertLess(rt.duration, 6*3600)
